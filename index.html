@@ -29,14 +29,47 @@
     .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
     @keyframes pulse-glow { 0%,100% { opacity: 0.15; } 50% { opacity: 0.25; } }
     .glow-pulse { animation: pulse-glow 3s ease-in-out infinite; }
-    /* Mobile responsiveness */
+    /* ═══ MOBILE RESPONSIVENESS ═══ */
     @media (max-width: 768px) {
+      /* CoachTip stacks below chart */
       .coach-row { flex-direction: column !important; }
       .coach-row > div:last-child { min-width: 100% !important; }
+      /* All grids collapse to 1 column */
+      .m-grid-1 { grid-template-columns: 1fr !important; }
+      /* 3-col stats → 2 columns on mobile */
+      .m-grid-2 { grid-template-columns: 1fr 1fr !important; }
+      /* Reduce main container padding */
+      .main-container { padding: 12px !important; }
+      /* Header: stack name & period buttons */
+      .header-wrap { flex-direction: column !important; align-items: flex-start !important; gap: 12px !important; }
+      .header-wrap .period-btns { width: 100%; justify-content: flex-start !important; }
+      /* Smaller title on mobile */
+      .title-name { font-size: 1.15rem !important; }
+      /* Tabs: bigger touch targets */
+      .tab-bar button { padding: 10px 14px !important; font-size: 0.8rem !important; }
+      /* Heatmap scroll */
+      .heatmap-scroll { overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
+      /* Cards: reduce padding */
+      .card-inner { padding: 14px !important; }
+      /* Recharts containers — slightly shorter on mobile */
+      .recharts-responsive-container { min-height: 180px; }
+      /* Shoe projection grid → stack */
+      .shoe-stats { grid-template-columns: 1fr !important; gap: 6px !important; }
+      /* HR zones pie + legend → stack */
+      .hr-zones-grid { grid-template-columns: 1fr !important; }
+      /* Metric cards: 2-column on narrow */
+      .metric-grid { grid-template-columns: repeat(2, 1fr) !important; }
     }
-    /* PWA install banner hide */
+    /* Extra small (< 380px, like iPhone SE) */
+    @media (max-width: 380px) {
+      .main-container { padding: 8px !important; }
+      .title-name { font-size: 1rem !important; }
+      .metric-grid { grid-template-columns: 1fr !important; }
+      .m-grid-2 { grid-template-columns: 1fr !important; }
+    }
+    /* PWA standalone mode */
     @media (display-mode: standalone) {
-      body { padding-top: env(safe-area-inset-top); }
+      body { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
     }
   </style>
 </head>
@@ -649,15 +682,17 @@
         }
         const gc=(c)=>c===0?"#111827":c===1?"#064e3b":c===2?"#059669":"#10b981";
         return (
-          <div style={{display:"flex",gap:3}}>
-            {weeks.map((w,wi)=>(
-              <div key={wi} style={{display:"flex",flexDirection:"column",gap:3}}>
-                {w.map((d,di)=>(
-                  <div key={di} title={`${d.date}: ${d.count} actividades`}
-                    style={{width:13,height:13,borderRadius:3,backgroundColor:d.in?gc(d.count):"transparent",transition:"all 0.2s"}}/>
-                ))}
-              </div>
-            ))}
+          <div className="heatmap-scroll" style={{overflowX:"auto",WebkitOverflowScrolling:"touch",paddingBottom:4}}>
+            <div style={{display:"flex",gap:3,minWidth:"max-content"}}>
+              {weeks.map((w,wi)=>(
+                <div key={wi} style={{display:"flex",flexDirection:"column",gap:3}}>
+                  {w.map((d,di)=>(
+                    <div key={di} title={`${d.date}: ${d.count} actividades`}
+                      style={{width:13,height:13,borderRadius:3,backgroundColor:d.in?gc(d.count):"transparent",transition:"all 0.2s"}}/>
+                  ))}
+                </div>
+              ))}
+            </div>
           </div>
         );
       };
@@ -676,27 +711,27 @@
       // RENDER
       // ═══════════════════════════════════════════════════
       return (
-        <div style={{minHeight:"100vh",color:"white",padding:"24px",fontFamily:"'Inter',system-ui,sans-serif",background:"linear-gradient(135deg,#0a0a0f 0%,#0d1117 50%,#0a0f1a 100%)"}}>
+        <div className="main-container" style={{minHeight:"100vh",color:"white",padding:"24px",fontFamily:"'Inter',system-ui,sans-serif",background:"linear-gradient(135deg,#0a0a0f 0%,#0d1117 50%,#0a0f1a 100%)",maxWidth:1200,margin:"0 auto"}}>
 
           {/* HEADER */}
-          <div style={{display:"flex",flexWrap:"wrap",alignItems:"center",justifyContent:"space-between",marginBottom:24,gap:16}}>
+          <div className="header-wrap" style={{display:"flex",flexWrap:"wrap",alignItems:"center",justifyContent:"space-between",marginBottom:24,gap:16}}>
             <div style={{display:"flex",alignItems:"center",gap:16}}>
               <div style={{position:"relative"}}>
                 <div style={{position:"absolute",inset:0,borderRadius:16,background:"linear-gradient(135deg,#06b6d4,#a855f7)",filter:"blur(16px)",opacity:0.5}}/>
-                <div style={{position:"relative",width:56,height:56,borderRadius:16,background:"linear-gradient(135deg,#06b6d4,#a855f7)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,fontWeight:900,color:"white"}}>LS</div>
+                <div style={{position:"relative",width:48,height:48,borderRadius:14,background:"linear-gradient(135deg,#06b6d4,#a855f7)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,fontWeight:900,color:"white"}}>LS</div>
               </div>
               <div>
-                <h1 style={{fontSize:"1.5rem",fontWeight:900,letterSpacing:"-0.025em",background:"linear-gradient(135deg,#06b6d4,#a855f7,#ec4899)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>{ATHLETE.name}</h1>
-                <div style={{display:"flex",alignItems:"center",gap:12,marginTop:2}}>
+                <h1 className="title-name" style={{fontSize:"1.5rem",fontWeight:900,letterSpacing:"-0.025em",background:"linear-gradient(135deg,#06b6d4,#a855f7,#ec4899)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>{ATHLETE.name}</h1>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginTop:2,flexWrap:"wrap"}}>
                   <span style={{color:"#6b7280",fontSize:"0.75rem"}}>{ATHLETE.weight}kg · Strava desde {ATHLETE.joined}</span>
                   <FormBadge status={currentForm.formStatus||"optimal"}/>
                 </div>
               </div>
             </div>
-            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+            <div className="period-btns" style={{display:"flex",gap:6,flexWrap:"wrap"}}>
               {[["30d","30D"],["90d","90D"],["ytd","2026"],["2025","2025"],["all","ALL"]].map(([v,l])=>(
                 <button key={v} onClick={()=>setPeriod(v)}
-                  style={{padding:"6px 12px",borderRadius:8,fontSize:"0.6875rem",fontWeight:700,letterSpacing:"0.05em",border:period===v?"1px solid rgba(255,255,255,0.2)":"1px solid transparent",background:period===v?"rgba(255,255,255,0.1)":"transparent",color:period===v?"white":"#6b7280",cursor:"pointer",transition:"all 0.2s"}}>
+                  style={{padding:"8px 14px",borderRadius:8,fontSize:"0.75rem",fontWeight:700,letterSpacing:"0.05em",border:period===v?"1px solid rgba(255,255,255,0.2)":"1px solid transparent",background:period===v?"rgba(255,255,255,0.1)":"transparent",color:period===v?"white":"#6b7280",cursor:"pointer",transition:"all 0.2s"}}>
                   {l}
                 </button>
               ))}
@@ -704,10 +739,10 @@
           </div>
 
           {/* TABS */}
-          <div className="scrollbar-hide" style={{display:"flex",gap:4,marginBottom:24,overflowX:"auto",paddingBottom:8}}>
+          <div className="scrollbar-hide tab-bar" style={{display:"flex",gap:4,marginBottom:24,overflowX:"auto",paddingBottom:8,WebkitOverflowScrolling:"touch"}}>
             {tabs.map(({id,label,icon:ic})=>(
               <button key={id} onClick={()=>setTab(id)}
-                style={{display:"flex",alignItems:"center",gap:6,padding:"8px 12px",borderRadius:12,fontSize:"0.75rem",fontWeight:600,whiteSpace:"nowrap",border:tab===id?"1px solid rgba(255,255,255,0.15)":"1px solid transparent",background:tab===id?"rgba(255,255,255,0.1)":"transparent",color:tab===id?"white":"#6b7280",cursor:"pointer",transition:"all 0.2s"}}>
+                style={{display:"flex",alignItems:"center",gap:6,padding:"10px 14px",borderRadius:12,fontSize:"0.8rem",fontWeight:600,whiteSpace:"nowrap",border:tab===id?"1px solid rgba(255,255,255,0.15)":"1px solid transparent",background:tab===id?"rgba(255,255,255,0.1)":"transparent",color:tab===id?"white":"#6b7280",cursor:"pointer",transition:"all 0.2s"}}>
                 <Icon type={ic} size={14}/> {label}
               </button>
             ))}
@@ -716,7 +751,7 @@
           {/* ═══════ OVERVIEW ═══════ */}
           {tab==="overview" && (
             <div style={{display:"flex",flexDirection:"column",gap:20}}>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:12}}>
+              <div className="metric-grid" style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:12}}>
                 <Metric iconType="foot" label="Km Running" value={fmt(kpi.totalKm,0)} sub={`${kpi.runCount} carreras`} color={N.cyan} large/>
                 <Metric iconType="clock" label="Tiempo Total" value={fmtTime(kpi.totalTime)} sub={`${kpi.totalAct} actividades`} color={N.purple}/>
                 <Metric iconType="zap" label="Pace Promedio" value={fmtPace(kpi.avgPace)} sub="min/km" color={N.green}/>
@@ -759,7 +794,7 @@
                     <Icon type="sparkles" size={16} color="#06b6d4"/>
                     <h3 style={{fontSize:"0.875rem",fontWeight:700,color:"white"}}>Coach AI Insights</h3>
                   </div>
-                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:12}}>
+                  <div className="m-grid-1" style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:12}}>
                     {insights.map((ins,i)=>(
                       <div key={i} style={{display:"flex",alignItems:"flex-start",gap:12,background:"rgba(255,255,255,0.02)",borderRadius:12,padding:12,border:"1px solid rgba(255,255,255,0.03)"}}>
                         <div style={{padding:6,borderRadius:8,marginTop:2,background:`${ins.color}18`}}><Icon type={ins.icon} size={14} color={ins.color}/></div>
@@ -774,7 +809,7 @@
               )}
 
               {/* Fitness/Fatigue/Form + Coach + Radar */}
-              <div style={{display:"grid",gridTemplateColumns:"5fr 2fr",gap:16}}>
+              <div className="m-grid-1" style={{display:"grid",gridTemplateColumns:"5fr 2fr",gap:16}}>
                 <Card className="p-5" glow={N.blue}>
                   <div className="coach-row" style={{display:"flex",gap:16,alignItems:"stretch"}}>
                     <div style={{flex:1,minWidth:0}}>
@@ -822,7 +857,7 @@
               </div>
 
               {/* Weekly/Monthly Volume */}
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+              <div className="m-grid-1" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
                 <Card className="p-5">
                   <h3 style={{fontSize:"0.875rem",fontWeight:700,color:"#e5e7eb",marginBottom:12}}>Volumen Semanal</h3>
                   <ResponsiveContainer width="100%" height={200}>
@@ -850,7 +885,7 @@
               </div>
 
               {/* Pie + Week Comp + Calories */}
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:16}}>
+              <div className="m-grid-2" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:16}}>
                 <Card className="p-5">
                   <h3 style={{fontSize:"0.875rem",fontWeight:700,color:"#e5e7eb",marginBottom:12}}>Distribución</h3>
                   <ResponsiveContainer width="100%" height={180}>
@@ -895,7 +930,7 @@
           {/* ═══════ COACHING ═══════ */}
           {tab==="coaching" && (
             <div style={{display:"flex",flexDirection:"column",gap:20}}>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:12}}>
+              <div className="metric-grid" style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:12}}>
                 <Metric iconType="battery" label="Fitness (CTL)" value={currentForm.fitness||0} sub="carga crónica" color={N.cyan}/>
                 <Metric iconType="battery" label="Fatiga (ATL)" value={currentForm.fatigue||0} sub="carga aguda" color={N.red}/>
                 <Metric iconType="gauge" label="Forma (TSB)" value={currentForm.form||0} sub={currentForm.formStatus||"\u2014"} color={N.green}/>
@@ -998,7 +1033,7 @@
           {/* ═══════ RUNNING ═══════ */}
           {tab==="running" && (
             <div style={{display:"flex",flexDirection:"column",gap:20}}>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:12}}>
+              <div className="metric-grid" style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:12}}>
                 {Object.entries(ATHLETE.bestEfforts).map(([dist,be])=>(
                   <Card key={dist} className="p-4" glow={N.yellow} style={{textAlign:"center"}}>
                     <p style={{fontSize:"0.625rem",color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.05em"}}>{dist}</p>
@@ -1037,7 +1072,7 @@
                 </div>
               </Card>
 
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+              <div className="m-grid-1" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
                 <Card className="p-5">
                   <h3 style={{fontSize:"0.875rem",fontWeight:700,color:"#e5e7eb",marginBottom:12}}>Distribución por Distancia</h3>
                   <ResponsiveContainer width="100%" height={220}>
@@ -1108,7 +1143,7 @@
                 <h3 style={{fontSize:"0.875rem",fontWeight:700,color:"#e5e7eb",marginBottom:12}}>Distribución de Zonas Cardíacas</h3>
                 <div className="coach-row" style={{display:"flex",gap:16,alignItems:"stretch"}}>
                   <div style={{flex:1,minWidth:0}}>
-                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:24}}>
+                    <div className="hr-zones-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:24}}>
                       <ResponsiveContainer width="100%" height={220}>
                         <PieChart>
                           <Pie data={energySystem.filter(z=>z.value>0)} cx="50%" cy="50%" innerRadius={55} outerRadius={90} paddingAngle={3} dataKey="value">
@@ -1219,7 +1254,7 @@
                   <div style={{padding:8,borderRadius:12,background:"rgba(249,115,22,0.15)"}}><Icon type="dumbbell" size={20} color="#fb923c"/></div>
                   <div><h3 style={{fontSize:"1.125rem",fontWeight:900,color:"white"}}>Entrenamiento de Fuerza</h3><p style={{fontSize:"0.625rem",color:"#9ca3af"}}>{weights.length} sesiones · Jefit</p></div>
                 </div>
-                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:12,marginBottom:20}}>
+                <div className="metric-grid" style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:12,marginBottom:20}}>
                   <div style={{background:"rgba(255,255,255,0.02)",borderRadius:12,padding:12,textAlign:"center"}}><p style={{fontSize:"0.625rem",color:"#6b7280"}}>Sesiones</p><p style={{fontSize:"1.25rem",fontWeight:900,color:"#fb923c"}}>{weights.length}</p></div>
                   <div style={{background:"rgba(255,255,255,0.02)",borderRadius:12,padding:12,textAlign:"center"}}><p style={{fontSize:"0.625rem",color:"#6b7280"}}>Tiempo Total</p><p style={{fontSize:"1.25rem",fontWeight:900,color:"#fb923c"}}>{fmtTime(weights.reduce((s,a)=>s+a.s,0))}</p></div>
                   <div style={{background:"rgba(255,255,255,0.02)",borderRadius:12,padding:12,textAlign:"center"}}><p style={{fontSize:"0.625rem",color:"#6b7280"}}>Prom/Sesión</p><p style={{fontSize:"1.25rem",fontWeight:900,color:"#fb923c"}}>{weights.length?fmtTime(Math.round(weights.reduce((s,a)=>s+a.s,0)/weights.length)):"\u2014"}</p></div>
@@ -1238,7 +1273,7 @@
                     <div style={{padding:8,borderRadius:12,background:"rgba(16,185,129,0.15)"}}><Icon type="bike" size={20} color="#34d399"/></div>
                     <h3 style={{fontSize:"1.125rem",fontWeight:900,color:"white"}}>Ciclismo</h3>
                   </div>
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>
+                  <div className="m-grid-2" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>
                     <div style={{background:"rgba(255,255,255,0.02)",borderRadius:12,padding:12,textAlign:"center"}}><p style={{fontSize:"0.625rem",color:"#6b7280"}}>Distancia</p><p style={{fontSize:"1.25rem",fontWeight:900,color:"#34d399"}}>{fmt(rides.reduce((s,a)=>s+a.km,0))} km</p></div>
                     <div style={{background:"rgba(255,255,255,0.02)",borderRadius:12,padding:12,textAlign:"center"}}><p style={{fontSize:"0.625rem",color:"#6b7280"}}>Tiempo</p><p style={{fontSize:"1.25rem",fontWeight:900,color:"#34d399"}}>{fmtTime(rides.reduce((s,a)=>s+a.s,0))}</p></div>
                     <div style={{background:"rgba(255,255,255,0.02)",borderRadius:12,padding:12,textAlign:"center"}}><p style={{fontSize:"0.625rem",color:"#6b7280"}}>Salidas</p><p style={{fontSize:"1.25rem",fontWeight:900,color:"#34d399"}}>{rides.length}</p></div>
@@ -1256,7 +1291,7 @@
                 <HeatmapGrid/>
                 <div style={{display:"flex",alignItems:"center",gap:8,marginTop:12}}><span style={{fontSize:"0.625rem",color:"#6b7280"}}>Menos</span>{[0,1,2,3].map(i=><div key={i} style={{width:11,height:11,borderRadius:2,backgroundColor:i===0?"#111827":i===1?"#064e3b":i===2?"#059669":"#10b981"}}/>)}<span style={{fontSize:"0.625rem",color:"#6b7280"}}>Más</span></div>
               </Card>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:16}}>
+              <div className="m-grid-2" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:16}}>
                 <Card className="p-5" glow={N.orange} style={{textAlign:"center"}}><Icon type="flame" size={28} color={N.orange}/><p style={{fontSize:"1.875rem",fontWeight:900,color:"white",marginTop:8}}>{streaks.max}</p><p style={{fontSize:"0.625rem",color:"#9ca3af"}}>Mejor racha (días)</p></Card>
                 <Card className="p-5" glow={N.cyan} style={{textAlign:"center"}}><Icon type="zap" size={28} color={N.cyan}/><p style={{fontSize:"1.875rem",fontWeight:900,color:"white",marginTop:8}}>{streaks.current}</p><p style={{fontSize:"0.625rem",color:"#9ca3af"}}>Racha actual</p></Card>
                 <Card className="p-5" glow={N.purple} style={{textAlign:"center"}}><Icon type="activity" size={28} color={N.purple}/><p style={{fontSize:"1.875rem",fontWeight:900,color:"white",marginTop:8}}>{Object.keys(heatmap).length}</p><p style={{fontSize:"0.625rem",color:"#9ca3af"}}>Días activos</p></Card>
@@ -1336,7 +1371,7 @@
                               <Icon type="calendar" size={12} color={shoe.color}/>
                               <span style={{fontSize:"0.75rem",fontWeight:700,color:"white"}}>Proyección de Reemplazo</span>
                             </div>
-                            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+                            <div className="shoe-stats" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
                               <div style={{textAlign:"center"}}>
                                 <p style={{fontSize:"0.625rem",color:"#6b7280"}}>Uso semanal</p>
                                 <p style={{fontSize:"1rem",fontWeight:900,color:shoe.color}}>{shoe.kmPerWeek} km</p>
