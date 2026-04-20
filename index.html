@@ -1,0 +1,1436 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes"/>
+  <meta name="theme-color" content="#0a0a0f"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="Strava Dashboard"/>
+  <meta name="description" content="Dashboard de entrenamiento de Luis Sánchez — Running, Fitness, Coaching y más"/>
+  <meta property="og:title" content="Strava Dashboard · Luis Sánchez"/>
+  <meta property="og:description" content="Analytics de running con coaching inteligente"/>
+  <meta property="og:type" content="website"/>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏃</text></svg>"/>
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏃</text></svg>"/>
+  <link rel="manifest" href="manifest.json"/>
+  <title>Strava Dashboard · Luis Sánchez</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/prop-types@15/prop-types.min.js"></script>
+  <script crossorigin src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
+  <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: linear-gradient(135deg, #0a0a0f 0%, #0d1117 50%, #0a0f1a 100%); min-height: 100vh; }
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    @keyframes pulse-glow { 0%,100% { opacity: 0.15; } 50% { opacity: 0.25; } }
+    .glow-pulse { animation: pulse-glow 3s ease-in-out infinite; }
+    /* Mobile responsiveness */
+    @media (max-width: 768px) {
+      .coach-row { flex-direction: column !important; }
+      .coach-row > div:last-child { min-width: 100% !important; }
+    }
+    /* PWA install banner hide */
+    @media (display-mode: standalone) {
+      body { padding-top: env(safe-area-inset-top); }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useMemo, useCallback } = React;
+    const {
+      LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis,
+      CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell,
+      RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
+      ComposedChart, Legend, ScatterChart, Scatter, ZAxis
+    } = window.Recharts;
+
+    // ═══════════════════════════════════════════════════════════════
+    // ATHLETE CONFIG
+    // ═══════════════════════════════════════════════════════════════
+    const ATHLETE = {
+      name: "Luis Sánchez", weight: 70.1, age: 35, joined: "Sep 2015",
+      restHr: 55, maxHr: 203,
+      hrZones: [
+        { name: "Z1 Recovery", min: 0, max: 124, color: "#6b7280" },
+        { name: "Z2 Aerobic", min: 124, max: 154, color: "#3b82f6" },
+        { name: "Z3 Tempo", min: 154, max: 169, color: "#10b981" },
+        { name: "Z4 Threshold", min: 169, max: 184, color: "#f59e0b" },
+        { name: "Z5 VO2max", min: 184, max: 220, color: "#ef4444" }
+      ],
+      bestEfforts: {
+        "5K": { time: 1320, date: "2026-02-18", pace: "4:24/km" },
+        "10K": { time: 2880, date: "2026-02-18", pace: "4:48/km" },
+        "21K": { time: 6582, date: "2026-03-08", pace: "5:11/km" },
+        "30K": { time: 11898, date: "2025-09-06", pace: "6:36/km" }
+      },
+      allTimeKm: 10115, allTimeRuns: 1020, allTimeHours: 1077,
+      shoes: [
+        { name: "ASICS Nimbus El mar azul", km: 204, maxKm: 700, color: "#3b82f6", icon: "🔵", firstUse: "2026-03-08", lastUse: "2026-04-17" },
+        { name: "ASICS Nimbus La llama roja", km: 506, maxKm: 700, color: "#ef4444", icon: "🔴", firstUse: "2025-09-06", lastUse: "2026-04-18" }
+      ]
+    };
+
+    // ═══════════════════════════════════════════════════════════════
+    // 232 STRAVA ACTIVITIES
+    // ═══════════════════════════════════════════════════════════════
+    const RAW = [
+      {id:0,t:"Run",d:"2026-04-18",km:14.07,s:5340,el:9,hr:147.5,p:6.33,w:193,cal:857,mhr:180,g:"roja"},
+      {id:1,t:"WeightTraining",d:"2026-04-17",km:0,s:2554,el:0,hr:0,p:0,w:0,cal:0},
+      {id:2,t:"Run",d:"2026-04-17",km:10.01,s:3572,el:19,hr:156.2,p:5.95,w:204.9,cal:624,mhr:171,g:"azul"},
+      {id:3,t:"WeightTraining",d:"2026-04-16",km:0,s:189,el:0,hr:0,p:0,w:0,cal:0},
+      {id:4,t:"WeightTraining",d:"2026-04-15",km:0,s:1754,el:0,hr:0,p:0,w:0,cal:0},
+      {id:5,t:"Run",d:"2026-04-15",km:10.02,s:3367,el:0,hr:158,p:5.60,w:210,cal:590,g:"azul"},
+      {id:6,t:"Run",d:"2026-04-14",km:8.12,s:2961,el:17,hr:147.8,p:6.08,w:201.6,cal:503,mhr:168,g:"azul"},
+      {id:7,t:"Run",d:"2026-04-13",km:12.04,s:4329,el:34,hr:157.2,p:6.00,w:201.5,cal:754,mhr:184,g:"roja"},
+      {id:8,t:"Run",d:"2026-04-12",km:5.03,s:1619,el:2,hr:162.6,p:5.37,w:225.2,cal:309,mhr:173,g:"azul"},
+      {id:9,t:"Run",d:"2026-04-11",km:18.14,s:6474,el:61,hr:160,p:5.95,w:205.7,cal:1140,mhr:184,g:"roja"},
+      {id:10,t:"Run",d:"2026-04-09",km:12.02,s:3881,el:21,hr:168.5,p:5.38,w:225.5,cal:750,mhr:184,g:"azul"},
+      {id:11,t:"Run",d:"2026-04-07",km:6.30,s:2005,el:39,hr:170.6,p:5.30,w:228.2,cal:409,mhr:185,g:"azul"},
+      {id:12,t:"Run",d:"2026-04-07",km:2.76,s:1009,el:0,hr:140,p:6.09,w:180,cal:150},
+      {id:13,t:"Run",d:"2026-04-02",km:21.02,s:7610,el:36,hr:158.9,p:6.03,w:201.7,cal:1339,mhr:177,g:"roja"},
+      {id:14,t:"WeightTraining",d:"2026-04-01",km:0,s:5820,el:0,hr:0,p:0,w:0,cal:0},
+      {id:15,t:"WeightTraining",d:"2026-03-31",km:0,s:2460,el:0,hr:0,p:0,w:0,cal:0},
+      {id:16,t:"Run",d:"2026-03-31",km:10.01,s:3660,el:10,hr:158,p:6.09,w:198,cal:590},
+      {id:17,t:"Run",d:"2026-03-30",km:12.02,s:3792,el:26,hr:166.6,p:5.26,w:230.2,cal:755,mhr:184,g:"roja"},
+      {id:18,t:"Run",d:"2026-03-28",km:15.51,s:5880,el:20,hr:162,p:6.32,w:195,cal:880},
+      {id:19,t:"WeightTraining",d:"2026-03-27",km:0,s:4440,el:0,hr:0,p:0,w:0,cal:0},
+      {id:20,t:"Run",d:"2026-03-27",km:10.01,s:3660,el:10,hr:157,p:6.09,w:200,cal:580},
+      {id:21,t:"WeightTraining",d:"2026-03-25",km:0,s:3357,el:0,hr:0,p:0,w:0,cal:0},
+      {id:22,t:"Run",d:"2026-03-25",km:10.00,s:3600,el:10,hr:156,p:6.00,w:202,cal:570},
+      {id:23,t:"WeightTraining",d:"2026-03-24",km:0,s:2283,el:0,hr:0,p:0,w:0,cal:0},
+      {id:24,t:"WeightTraining",d:"2026-03-24",km:0,s:2637,el:0,hr:0,p:0,w:0,cal:0},
+      {id:25,t:"Run",d:"2026-03-24",km:10.02,s:3354,el:10,hr:162,p:5.58,w:218,cal:600,n:"intervals"},
+      {id:26,t:"Run",d:"2026-03-21",km:14.02,s:4645,el:26,hr:166,p:5.52,w:221.1,cal:875,mhr:181,g:"roja"},
+      {id:27,t:"WeightTraining",d:"2026-03-20",km:0,s:3052,el:0,hr:0,p:0,w:0,cal:0},
+      {id:28,t:"WeightTraining",d:"2026-03-20",km:0,s:3072,el:0,hr:0,p:0,w:0,cal:0},
+      {id:29,t:"Run",d:"2026-03-20",km:16.02,s:5617,el:35,hr:164.5,p:5.85,w:209,cal:1005,mhr:182,g:"azul"},
+      {id:30,t:"WeightTraining",d:"2026-03-19",km:0,s:5220,el:0,hr:0,p:0,w:0,cal:0},
+      {id:31,t:"WeightTraining",d:"2026-03-19",km:0,s:5220,el:0,hr:0,p:0,w:0,cal:0},
+      {id:32,t:"WeightTraining",d:"2026-03-18",km:0,s:2729,el:0,hr:0,p:0,w:0,cal:0},
+      {id:33,t:"WeightTraining",d:"2026-03-18",km:0,s:3162,el:0,hr:0,p:0,w:0,cal:0},
+      {id:34,t:"Run",d:"2026-03-18",km:12.01,s:3840,el:15,hr:163,p:5.33,w:222,cal:680},
+      {id:35,t:"Run",d:"2026-03-13",km:12.02,s:4080,el:15,hr:160,p:5.66,w:210,cal:660},
+      {id:36,t:"Run",d:"2026-03-11",km:8.02,s:2921,el:10,hr:155,p:6.07,w:198,cal:460},
+      {id:37,t:"WeightTraining",d:"2026-03-10",km:0,s:2760,el:0,hr:0,p:0,w:0,cal:0},
+      {id:38,t:"Ride",d:"2026-03-10",km:20.08,s:3109,el:30,hr:145,p:0,w:150,cal:400},
+      {id:39,t:"Run",d:"2026-03-08",km:21.14,s:6582,el:30,hr:181.3,p:5.19,w:234.4,cal:1322,mhr:203,g:"azul"},
+      {id:40,t:"WeightTraining",d:"2026-03-06",km:0,s:2908,el:0,hr:0,p:0,w:0,cal:0},
+      {id:41,t:"WeightTraining",d:"2026-03-06",km:0,s:2990,el:0,hr:0,p:0,w:0,cal:0},
+      {id:42,t:"Run",d:"2026-03-06",km:7.02,s:2341,el:10,hr:155,p:5.56,w:210,cal:400},
+      {id:43,t:"WeightTraining",d:"2026-03-03",km:0,s:3237,el:0,hr:0,p:0,w:0,cal:0},
+      {id:44,t:"WeightTraining",d:"2026-03-03",km:0,s:3237,el:0,hr:0,p:0,w:0,cal:0},
+      {id:45,t:"WeightTraining",d:"2026-03-02",km:0,s:1573,el:0,hr:0,p:0,w:0,cal:0},
+      {id:46,t:"WeightTraining",d:"2026-03-02",km:0,s:1988,el:0,hr:0,p:0,w:0,cal:0},
+      {id:47,t:"Run",d:"2026-03-02",km:15.72,s:5401,el:29,hr:162.6,p:5.73,w:214.6,cal:984,mhr:181,g:"roja"},
+      {id:48,t:"Run",d:"2026-02-27",km:14.01,s:5400,el:15,hr:158,p:6.42,w:195,cal:800},
+      {id:49,t:"WeightTraining",d:"2026-02-26",km:0,s:2925,el:0,hr:0,p:0,w:0,cal:0},
+      {id:50,t:"WeightTraining",d:"2026-02-26",km:0,s:3421,el:0,hr:0,p:0,w:0,cal:0},
+      {id:51,t:"Run",d:"2026-02-26",km:12.01,s:3780,el:12,hr:160,p:5.25,w:218,cal:650},
+      {id:52,t:"WeightTraining",d:"2026-02-25",km:0,s:4860,el:0,hr:0,p:0,w:0,cal:0},
+      {id:53,t:"WeightTraining",d:"2026-02-25",km:0,s:4860,el:0,hr:0,p:0,w:0,cal:0},
+      {id:54,t:"WeightTraining",d:"2026-02-24",km:0,s:3720,el:0,hr:0,p:0,w:0,cal:0},
+      {id:55,t:"WeightTraining",d:"2026-02-24",km:0,s:3720,el:0,hr:0,p:0,w:0,cal:0},
+      {id:56,t:"Walk",d:"2026-02-24",km:2.00,s:1506,el:0,hr:0,p:0,w:0,cal:120},
+      {id:57,t:"Run",d:"2026-02-24",km:7.01,s:2405,el:8,hr:155,p:5.72,w:208,cal:420},
+      {id:58,t:"Run",d:"2026-02-21",km:18.01,s:6864,el:27,hr:149.4,p:6.35,w:192.9,cal:1128,mhr:167,g:"roja"},
+      {id:59,t:"WeightTraining",d:"2026-02-20",km:0,s:3507,el:0,hr:0,p:0,w:0,cal:0},
+      {id:60,t:"WeightTraining",d:"2026-02-20",km:0,s:3600,el:0,hr:0,p:0,w:0,cal:0},
+      {id:61,t:"Run",d:"2026-02-20",km:7.51,s:2638,el:10,hr:158,p:5.86,w:205,cal:430},
+      {id:62,t:"WeightTraining",d:"2026-02-19",km:0,s:4320,el:0,hr:0,p:0,w:0,cal:0},
+      {id:63,t:"WeightTraining",d:"2026-02-18",km:0,s:3145,el:0,hr:0,p:0,w:0,cal:0},
+      {id:64,t:"Run",d:"2026-02-18",km:15.01,s:4647,el:35,hr:170.3,p:5.16,w:236.5,cal:946,mhr:187,g:"roja"},
+      {id:65,t:"WeightTraining",d:"2026-02-17",km:0,s:3189,el:0,hr:0,p:0,w:0,cal:0},
+      {id:66,t:"WeightTraining",d:"2026-02-17",km:0,s:3189,el:0,hr:0,p:0,w:0,cal:0},
+      {id:67,t:"Ride",d:"2026-02-16",km:10.29,s:1643,el:20,hr:140,p:0,w:130,cal:250},
+      {id:68,t:"Walk",d:"2026-02-16",km:1.71,s:1267,el:0,hr:0,p:0,w:0,cal:100},
+      {id:69,t:"Run",d:"2026-02-16",km:10.02,s:3559,el:12,hr:160,p:5.92,w:205,cal:600},
+      {id:70,t:"Run",d:"2026-02-14",km:25.01,s:9170,el:48,hr:158.6,p:6.11,w:200.4,cal:1660,mhr:191,g:"roja"},
+      {id:71,t:"WeightTraining",d:"2026-02-13",km:0,s:3095,el:0,hr:0,p:0,w:0,cal:0},
+      {id:72,t:"Run",d:"2026-02-13",km:10.01,s:3507,el:12,hr:160,p:5.84,w:208,cal:600},
+      {id:73,t:"WeightTraining",d:"2026-02-12",km:0,s:4200,el:0,hr:0,p:0,w:0,cal:0},
+      {id:74,t:"WeightTraining",d:"2026-02-12",km:0,s:4080,el:0,hr:0,p:0,w:0,cal:0},
+      {id:75,t:"WeightTraining",d:"2026-02-12",km:0,s:4500,el:0,hr:0,p:0,w:0,cal:0},
+      {id:76,t:"WeightTraining",d:"2026-02-11",km:0,s:3332,el:0,hr:0,p:0,w:0,cal:0},
+      {id:77,t:"WeightTraining",d:"2026-02-11",km:0,s:3373,el:0,hr:0,p:0,w:0,cal:0},
+      {id:78,t:"WeightTraining",d:"2026-02-11",km:0,s:3336,el:0,hr:0,p:0,w:0,cal:0},
+      {id:79,t:"Run",d:"2026-02-11",km:15.13,s:4730,el:34,hr:171.3,p:5.21,w:232,cal:938,mhr:187,g:"roja"},
+      {id:80,t:"WeightTraining",d:"2026-02-10",km:0,s:3058,el:0,hr:0,p:0,w:0,cal:0},
+      {id:81,t:"WeightTraining",d:"2026-02-10",km:0,s:2895,el:0,hr:0,p:0,w:0,cal:0},
+      {id:82,t:"WeightTraining",d:"2026-02-10",km:0,s:2904,el:0,hr:0,p:0,w:0,cal:0},
+      {id:83,t:"Run",d:"2026-02-10",km:11.96,s:3960,el:12,hr:162,p:5.52,w:215,cal:640},
+      {id:84,t:"Run",d:"2026-02-07",km:15.02,s:5580,el:15,hr:158,p:6.19,w:200,cal:840},
+      {id:85,t:"WeightTraining",d:"2026-02-06",km:0,s:3166,el:0,hr:0,p:0,w:0,cal:0},
+      {id:86,t:"WeightTraining",d:"2026-02-06",km:0,s:3166,el:0,hr:0,p:0,w:0,cal:0},
+      {id:87,t:"Run",d:"2026-02-06",km:10.51,s:3539,el:12,hr:160,p:5.61,w:210,cal:580},
+      {id:88,t:"WeightTraining",d:"2026-02-05",km:0,s:4260,el:0,hr:0,p:0,w:0,cal:0},
+      {id:89,t:"WeightTraining",d:"2026-02-05",km:0,s:4500,el:0,hr:0,p:0,w:0,cal:0},
+      {id:90,t:"WeightTraining",d:"2026-02-04",km:0,s:1560,el:0,hr:0,p:0,w:0,cal:0},
+      {id:91,t:"WeightTraining",d:"2026-02-04",km:0,s:3434,el:0,hr:0,p:0,w:0,cal:0},
+      {id:92,t:"Run",d:"2026-02-04",km:7.70,s:2678,el:8,hr:155,p:5.80,w:205,cal:420},
+      {id:93,t:"Walk",d:"2026-02-03",km:1.04,s:728,el:0,hr:0,p:0,w:0,cal:60},
+      {id:94,t:"Run",d:"2026-02-03",km:10.01,s:3529,el:12,hr:158,p:5.88,w:205,cal:580},
+      {id:95,t:"WeightTraining",d:"2026-02-02",km:0,s:3960,el:0,hr:0,p:0,w:0,cal:0},
+      {id:96,t:"WeightTraining",d:"2026-02-02",km:0,s:3960,el:0,hr:0,p:0,w:0,cal:0},
+      {id:97,t:"Run",d:"2026-01-31",km:9.20,s:3579,el:10,hr:155,p:6.49,w:195,cal:520},
+      {id:98,t:"WeightTraining",d:"2026-01-29",km:0,s:4020,el:0,hr:0,p:0,w:0,cal:0},
+      {id:99,t:"WeightTraining",d:"2026-01-29",km:0,s:4260,el:0,hr:0,p:0,w:0,cal:0},
+      {id:100,t:"WeightTraining",d:"2026-01-28",km:0,s:3403,el:0,hr:0,p:0,w:0,cal:0},
+      {id:101,t:"WeightTraining",d:"2026-01-28",km:0,s:3403,el:0,hr:0,p:0,w:0,cal:0},
+      {id:102,t:"WeightTraining",d:"2026-01-27",km:0,s:3480,el:0,hr:0,p:0,w:0,cal:0},
+      {id:103,t:"WeightTraining",d:"2026-01-27",km:0,s:3480,el:0,hr:0,p:0,w:0,cal:0},
+      {id:104,t:"Run",d:"2026-01-24",km:12.02,s:4560,el:15,hr:158,p:6.33,w:200,cal:680},
+      {id:105,t:"WeightTraining",d:"2026-01-23",km:0,s:2776,el:0,hr:0,p:0,w:0,cal:0},
+      {id:106,t:"WeightTraining",d:"2026-01-23",km:0,s:3412,el:0,hr:0,p:0,w:0,cal:0},
+      {id:107,t:"Run",d:"2026-01-23",km:6.02,s:2212,el:8,hr:152,p:6.13,w:198,cal:340},
+      {id:108,t:"WeightTraining",d:"2026-01-22",km:0,s:3101,el:0,hr:0,p:0,w:0,cal:0},
+      {id:109,t:"WeightTraining",d:"2026-01-22",km:0,s:3101,el:0,hr:0,p:0,w:0,cal:0},
+      {id:110,t:"Run",d:"2026-01-20",km:5.00,s:1960,el:5,hr:148,p:6.53,w:190,cal:280},
+      {id:111,t:"Run",d:"2026-01-17",km:18.52,s:6900,el:25,hr:162,p:6.21,w:200,cal:1050},
+      {id:112,t:"WeightTraining",d:"2026-01-16",km:0,s:3117,el:0,hr:0,p:0,w:0,cal:0},
+      {id:113,t:"Run",d:"2026-01-16",km:12.02,s:4560,el:15,hr:158,p:6.33,w:200,cal:680},
+      {id:114,t:"WeightTraining",d:"2026-01-15",km:0,s:3321,el:0,hr:0,p:0,w:0,cal:0},
+      {id:115,t:"WeightTraining",d:"2026-01-15",km:0,s:3780,el:0,hr:0,p:0,w:0,cal:0},
+      {id:116,t:"WeightTraining",d:"2026-01-14",km:0,s:2821,el:0,hr:0,p:0,w:0,cal:0},
+      {id:117,t:"WeightTraining",d:"2026-01-14",km:0,s:2895,el:0,hr:0,p:0,w:0,cal:0},
+      {id:118,t:"Run",d:"2026-01-14",km:13.02,s:4329,el:25,hr:156.9,p:5.54,w:217.1,cal:797,mhr:172,n:"intervals"},
+      {id:119,t:"WeightTraining",d:"2026-01-13",km:0,s:3425,el:0,hr:0,p:0,w:0,cal:0},
+      {id:120,t:"Run",d:"2026-01-13",km:8.02,s:3168,el:10,hr:155,p:6.59,w:195,cal:460},
+      {id:121,t:"Run",d:"2026-01-12",km:14.03,s:4920,el:15,hr:160,p:5.84,w:205,cal:780},
+      {id:122,t:"Run",d:"2026-01-10",km:7.39,s:2640,el:8,hr:155,p:5.95,w:200,cal:420},
+      {id:123,t:"Run",d:"2026-01-10",km:8.96,s:4320,el:10,hr:148,p:8.04,w:170,cal:420},
+      {id:124,t:"WeightTraining",d:"2026-01-09",km:0,s:2881,el:0,hr:0,p:0,w:0,cal:0},
+      {id:125,t:"Run",d:"2026-01-09",km:10.01,s:3444,el:12,hr:160,p:5.74,w:210,cal:580},
+      {id:126,t:"WeightTraining",d:"2026-01-08",km:0,s:3960,el:0,hr:0,p:0,w:0,cal:0},
+      {id:127,t:"WeightTraining",d:"2026-01-07",km:0,s:3540,el:0,hr:0,p:0,w:0,cal:0},
+      {id:128,t:"Run",d:"2026-01-07",km:12.02,s:3960,el:15,hr:162,p:5.49,w:215,cal:660},
+      {id:129,t:"WeightTraining",d:"2026-01-06",km:0,s:3277,el:0,hr:0,p:0,w:0,cal:0},
+      {id:130,t:"Run",d:"2026-01-06",km:12.02,s:4140,el:15,hr:160,p:5.74,w:208,cal:650},
+      {id:131,t:"Run",d:"2026-01-03",km:21.01,s:7695,el:137,hr:161.9,p:6.10,w:198.6,cal:1291,mhr:180},
+      {id:132,t:"Run",d:"2025-12-31",km:10.02,s:3411,el:12,hr:162,p:5.67,w:212,cal:600},
+      {id:133,t:"Run",d:"2025-12-30",km:10.01,s:3600,el:10,hr:160,p:5.99,w:205,cal:580},
+      {id:134,t:"Run",d:"2025-12-23",km:10.03,s:3537,el:12,hr:158,p:5.88,w:208,cal:575},
+      {id:135,t:"WeightTraining",d:"2025-12-22",km:0,s:3467,el:0,hr:0,p:0,w:0,cal:0},
+      {id:136,t:"Run",d:"2025-12-22",km:10.01,s:3449,el:12,hr:160,p:5.74,w:210,cal:580},
+      {id:137,t:"Run",d:"2025-12-19",km:12.02,s:4320,el:15,hr:158,p:5.99,w:205,cal:660},
+      {id:138,t:"WeightTraining",d:"2025-12-18",km:0,s:2576,el:0,hr:0,p:0,w:0,cal:0},
+      {id:139,t:"WeightTraining",d:"2025-12-17",km:0,s:2690,el:0,hr:0,p:0,w:0,cal:0},
+      {id:140,t:"Run",d:"2025-12-17",km:12.03,s:4320,el:15,hr:158,p:5.99,w:205,cal:660},
+      {id:141,t:"WeightTraining",d:"2025-12-16",km:0,s:2436,el:0,hr:0,p:0,w:0,cal:0},
+      {id:142,t:"Run",d:"2025-12-16",km:12.01,s:4740,el:15,hr:155,p:6.58,w:195,cal:660},
+      {id:143,t:"Run",d:"2025-12-13",km:5.01,s:1653,el:5,hr:152,p:5.50,w:210,cal:300},
+      {id:144,t:"Run",d:"2025-12-06",km:20.01,s:7136,el:107,hr:166.8,p:5.94,w:202.9,cal:1368,mhr:197},
+      {id:145,t:"WeightTraining",d:"2025-12-03",km:0,s:2648,el:0,hr:0,p:0,w:0,cal:0},
+      {id:146,t:"Run",d:"2025-12-03",km:12.01,s:4260,el:15,hr:160,p:5.91,w:206,cal:660},
+      {id:147,t:"WeightTraining",d:"2025-12-02",km:0,s:3116,el:0,hr:0,p:0,w:0,cal:0},
+      {id:148,t:"Run",d:"2025-12-02",km:12.02,s:4080,el:15,hr:162,p:5.66,w:212,cal:680},
+      {id:149,t:"Run",d:"2025-11-29",km:20.01,s:7080,el:20,hr:165,p:5.90,w:205,cal:1300},
+      {id:150,t:"WeightTraining",d:"2025-11-27",km:0,s:2714,el:0,hr:0,p:0,w:0,cal:0},
+      {id:151,t:"Run",d:"2025-11-27",km:10.01,s:3464,el:12,hr:160,p:5.77,w:208,cal:580},
+      {id:152,t:"WeightTraining",d:"2025-11-25",km:0,s:3600,el:0,hr:0,p:0,w:0,cal:0},
+      {id:153,t:"WeightTraining",d:"2025-11-24",km:0,s:2402,el:0,hr:0,p:0,w:0,cal:0},
+      {id:154,t:"Run",d:"2025-11-24",km:10.02,s:3534,el:12,hr:160,p:5.88,w:206,cal:580},
+      {id:155,t:"Run",d:"2025-11-22",km:18.01,s:6780,el:20,hr:162,p:6.27,w:200,cal:1020},
+      {id:156,t:"Run",d:"2025-11-21",km:11.02,s:4080,el:12,hr:160,p:6.17,w:205,cal:640},
+      {id:157,t:"Run",d:"2025-11-19",km:12.02,s:4080,el:15,hr:162,p:5.66,w:212,cal:680},
+      {id:158,t:"WeightTraining",d:"2025-11-18",km:0,s:2917,el:0,hr:0,p:0,w:0,cal:0},
+      {id:159,t:"Run",d:"2025-11-17",km:10.02,s:3548,el:12,hr:160,p:5.90,w:206,cal:580},
+      {id:160,t:"Run",d:"2025-11-15",km:16.02,s:5580,el:20,hr:163,p:5.81,w:208,cal:950},
+      {id:161,t:"WeightTraining",d:"2025-11-13",km:0,s:3517,el:0,hr:0,p:0,w:0,cal:0},
+      {id:162,t:"Run",d:"2025-11-13",km:10.02,s:3564,el:12,hr:160,p:5.93,w:205,cal:580},
+      {id:163,t:"WeightTraining",d:"2025-11-12",km:0,s:1276,el:0,hr:0,p:0,w:0,cal:0},
+      {id:164,t:"Run",d:"2025-11-12",km:10.01,s:3513,el:12,hr:160,p:5.85,w:207,cal:575},
+      {id:165,t:"Run",d:"2025-11-08",km:10.02,s:3600,el:12,hr:159,p:5.99,w:205,cal:575},
+      {id:166,t:"WeightTraining",d:"2025-11-07",km:0,s:2869,el:0,hr:0,p:0,w:0,cal:0},
+      {id:167,t:"Run",d:"2025-11-07",km:7.51,s:2603,el:8,hr:155,p:5.78,w:208,cal:420},
+      {id:168,t:"WeightTraining",d:"2025-11-06",km:0,s:3600,el:0,hr:0,p:0,w:0,cal:0},
+      {id:169,t:"Run",d:"2025-11-05",km:6.01,s:2010,el:5,hr:152,p:5.57,w:212,cal:340},
+      {id:170,t:"WeightTraining",d:"2025-11-04",km:0,s:2642,el:0,hr:0,p:0,w:0,cal:0},
+      {id:171,t:"Run",d:"2025-11-04",km:8.02,s:2736,el:8,hr:155,p:5.69,w:210,cal:460},
+      {id:172,t:"WeightTraining",d:"2025-11-03",km:0,s:2896,el:0,hr:0,p:0,w:0,cal:0},
+      {id:173,t:"WeightTraining",d:"2025-10-31",km:0,s:2907,el:0,hr:0,p:0,w:0,cal:0},
+      {id:174,t:"Run",d:"2025-10-31",km:6.54,s:2458,el:5,hr:152,p:6.26,w:200,cal:360},
+      {id:175,t:"Run",d:"2025-10-29",km:5.02,s:1846,el:5,hr:150,p:6.13,w:198,cal:280},
+      {id:176,t:"Walk",d:"2025-10-28",km:1.04,s:740,el:0,hr:0,p:0,w:0,cal:50},
+      {id:177,t:"Run",d:"2025-10-28",km:9.13,s:3220,el:10,hr:158,p:5.88,w:206,cal:520},
+      {id:178,t:"Run",d:"2025-10-21",km:5.04,s:2193,el:5,hr:148,p:7.25,w:180,cal:280},
+      {id:179,t:"Run",d:"2025-10-19",km:21.01,s:7680,el:25,hr:162,p:6.09,w:200,cal:1200},
+      {id:180,t:"Run",d:"2025-10-16",km:5.11,s:2103,el:5,hr:148,p:6.86,w:185,cal:280},
+      {id:181,t:"Run",d:"2025-10-14",km:8.33,s:3137,el:10,hr:155,p:6.28,w:200,cal:480},
+      {id:182,t:"Run",d:"2025-10-11",km:10.34,s:3662,el:12,hr:160,p:5.90,w:206,cal:580},
+      {id:183,t:"Run",d:"2025-10-08",km:10.03,s:3422,el:12,hr:162,p:5.69,w:212,cal:580},
+      {id:184,t:"Run",d:"2025-10-04",km:15.01,s:5160,el:15,hr:162,p:5.73,w:210,cal:860},
+      {id:185,t:"Run",d:"2025-09-30",km:4.50,s:1204,el:22,hr:177,p:4.46,w:269.3,cal:281,mhr:182},
+      {id:186,t:"Run",d:"2025-09-26",km:16.02,s:5280,el:15,hr:163,p:5.49,w:215,cal:920},
+      {id:187,t:"Run",d:"2025-09-25",km:15.01,s:4980,el:15,hr:163,p:5.53,w:215,cal:870},
+      {id:188,t:"HIIT",d:"2025-09-24",km:0,s:2020,el:0,hr:170,p:0,w:0,cal:350},
+      {id:189,t:"Run",d:"2025-09-23",km:16.02,s:5340,el:15,hr:164,p:5.56,w:214,cal:930},
+      {id:190,t:"Run",d:"2025-09-20",km:16.02,s:5640,el:15,hr:162,p:5.87,w:208,cal:920},
+      {id:191,t:"Run",d:"2025-09-19",km:8.02,s:2819,el:8,hr:158,p:5.86,w:208,cal:460},
+      {id:192,t:"Run",d:"2025-09-13",km:5.01,s:1592,el:5,hr:155,p:5.30,w:218,cal:300},
+      {id:193,t:"Run",d:"2025-09-11",km:5.01,s:1903,el:5,hr:150,p:6.33,w:198,cal:280},
+      {id:194,t:"Run",d:"2025-09-08",km:5.02,s:1819,el:5,hr:152,p:6.04,w:202,cal:290},
+      {id:195,t:"Run",d:"2025-09-06",km:30.02,s:11898,el:257,hr:176.9,p:6.61,w:188.1,cal:2103,mhr:194},
+      {id:196,t:"Run",d:"2025-09-04",km:7.02,s:2710,el:8,hr:155,p:6.44,w:195,cal:400},
+      {id:197,t:"Run",d:"2025-09-02",km:6.01,s:2272,el:5,hr:152,p:6.30,w:198,cal:340},
+      {id:198,t:"Run",d:"2025-08-29",km:10.01,s:3402,el:12,hr:160,p:5.66,w:210,cal:580},
+      {id:199,t:"Run",d:"2025-08-27",km:10.10,s:3592,el:12,hr:160,p:5.93,w:206,cal:580},
+      {id:200,t:"Run",d:"2025-08-23",km:11.51,s:4440,el:12,hr:158,p:6.43,w:198,cal:640},
+      {id:201,t:"Run",d:"2025-08-22",km:7.36,s:2788,el:8,hr:155,p:6.31,w:200,cal:420},
+      {id:202,t:"Run",d:"2025-08-20",km:14.41,s:4920,el:15,hr:163,p:5.69,w:212,cal:850},
+      {id:203,t:"Run",d:"2025-08-19",km:8.53,s:2954,el:10,hr:158,p:5.77,w:208,cal:480},
+      {id:204,t:"Run",d:"2025-08-16",km:25.02,s:9313,el:132,hr:160.5,p:6.20,w:195.1,cal:1669,mhr:180},
+      {id:205,t:"Run",d:"2025-08-13",km:10.89,s:3900,el:12,hr:160,p:5.97,w:206,cal:580},
+      {id:206,t:"Run",d:"2025-08-12",km:13.01,s:4440,el:15,hr:162,p:5.69,w:212,cal:750},
+      {id:207,t:"Run",d:"2025-08-09",km:24.02,s:8760,el:25,hr:162,p:6.08,w:200,cal:1550},
+      {id:208,t:"Run",d:"2025-08-08",km:6.05,s:2234,el:5,hr:152,p:6.16,w:200,cal:340},
+      {id:209,t:"Run",d:"2025-08-06",km:13.02,s:4560,el:15,hr:160,p:5.84,w:208,cal:720}
+    ];
+
+    // ═══════════════════════════════════════════════════════════════
+    // UTILITY FUNCTIONS
+    // ═══════════════════════════════════════════════════════════════
+    const fmt = (n, d = 1) => Number(n).toFixed(d);
+    const fmtTime = (sec) => { const h = Math.floor(sec/3600); const m = Math.floor((sec%3600)/60); const ss = Math.round(sec%60); return h > 0 ? `${h}h ${m}m` : `${m}:${String(ss).padStart(2,'0')}`; };
+    const fmtPace = (p) => { if (!p || p <= 0 || p > 15) return "\u2014"; const m = Math.floor(p); const ss = Math.round((p-m)*60); return `${m}:${String(ss).padStart(2,'0')}`; };
+    const getMonthKey = (d) => d.substring(0,7);
+    const MONTHS = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+    const N = { cyan:"#06b6d4", purple:"#a855f7", green:"#10b981", orange:"#f97316", pink:"#ec4899", yellow:"#eab308", red:"#ef4444", blue:"#3b82f6", lime:"#84cc16" };
+
+    // ═══════════════════════════════════════════════════════════════
+    // ICONS (SVG inline since we can't use lucide in HTML)
+    // ═══════════════════════════════════════════════════════════════
+    const Icon = ({type, size=14, color="currentColor", className=""}) => {
+      const s = {width:size,height:size,display:"inline-block",verticalAlign:"middle"};
+      const icons = {
+        activity: <svg style={s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>,
+        trendUp: <svg style={s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>,
+        trendDown: <svg style={s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>,
+        clock: <svg style={s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+        mountain: <svg style={s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round"><path d="m8 3 4 8 5-5 5 15H2L8 3z"/></svg>,
+        zap: <svg style={s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
+        heart: <svg style={s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>,
+        flame: <svg style={s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>,
+        calendar: <svg style={s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>,
+        barChart: <svg style={s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round"><line x1="12" x2="12" y1="20" y2="10"/><line x1="18" x2="18" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="16"/></svg>,
+        foot: <svg style={s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round"><path d="M4 16v-2.38C4 11.5 2.97 10.5 3 8c.03-2.72 1.49-6 4.5-6C9.37 2 10 3.8 10 5.5c0 3.11-2 5.66-2 8.68V16a2 2 0 1 1-4 0Z"/><path d="M20 20v-2.38c0-2.12 1.03-3.12 1-5.62-.03-2.72-1.49-6-4.5-6C14.63 6 14 7.8 14 9.5c0 3.11 2 5.66 2 8.68V20a2 2 0 1 0 4 0Z"/></svg>,
+        dumbbell: <svg style={s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round"><path d="m6.5 6.5 11 11"/><path d="m21 21-1-1"/><path d="m3 3 1 1"/><path d="m18 22 4-4"/><path d="m2 6 4-4"/><path d="m3 10 7-7"/><path d="m14 21 7-7"/></svg>,
+        bike: <svg style={s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round"><circle cx="18.5" cy="17.5" r="3.5"/><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="15" cy="5" r="1"/><path d="M12 17.5V14l-3-3 4-3 2 3h2"/></svg>,
+        target: <svg style={s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>,
+        gauge: <svg style={s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>,
+        sparkles: <svg style={s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>,
+        arrowUp: <svg style={s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round"><path d="m7 7 10 10"/><path d="M17 7v10"/></svg>,
+        arrowDown: <svg style={s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round"><path d="m7 17 10-10"/><path d="M17 17V7"/></svg>,
+        check: <svg style={s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>,
+        alert: <svg style={s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>,
+        battery: <svg style={s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round"><rect width="16" height="10" x="2" y="7" rx="2" ry="2"/><line x1="22" x2="22" y1="11" y2="13"/></svg>,
+        minus: <svg style={s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round"><line x1="5" x2="19" y1="12" y2="12"/></svg>,
+      };
+      return icons[type] || null;
+    };
+
+    // ═══════════════════════════════════════════════════════════════
+    // MAIN COMPONENT
+    // ═══════════════════════════════════════════════════════════════
+    function StravaDashboard() {
+      const [tab, setTab] = useState("overview");
+      const [period, setPeriod] = useState("ytd");
+
+      const now = new Date("2026-04-20");
+
+      const data = useMemo(() => {
+        return RAW.filter(a => {
+          const d = new Date(a.d);
+          if (period === "30d") return (now - d) / 864e5 <= 30;
+          if (period === "90d") return (now - d) / 864e5 <= 90;
+          if (period === "ytd") return d.getFullYear() === 2026;
+          if (period === "2025") return d.getFullYear() === 2025;
+          return true;
+        });
+      }, [period]);
+
+      const runs = useMemo(() => data.filter(a => a.t === "Run" && a.km > 0), [data]);
+      const weights = useMemo(() => data.filter(a => a.t === "WeightTraining"), [data]);
+      const rides = useMemo(() => data.filter(a => a.t === "Ride"), [data]);
+
+      // Weekly aggregates
+      const weeklyAgg = useMemo(() => {
+        const weeks = {};
+        runs.forEach(a => {
+          const d = new Date(a.d);
+          const ws = new Date(d); ws.setDate(d.getDate() - d.getDay());
+          const k = ws.toISOString().split("T")[0];
+          if (!weeks[k]) weeks[k] = { w: k, km: 0, runs: 0, sec: 0, el: 0, cal: 0, paces: [], hrs: [], watts: [] };
+          weeks[k].km += a.km; weeks[k].runs++; weeks[k].sec += a.s;
+          weeks[k].el += a.el; weeks[k].cal += (a.cal || 0);
+          if (a.p > 0 && a.p < 10) weeks[k].paces.push(a.p);
+          if (a.hr > 0) weeks[k].hrs.push(a.hr);
+          if (a.w > 0) weeks[k].watts.push(a.w);
+        });
+        return Object.values(weeks).map(w => ({
+          ...w,
+          avgPace: w.paces.length ? w.paces.reduce((a,b)=>a+b,0)/w.paces.length : 0,
+          avgHr: w.hrs.length ? w.hrs.reduce((a,b)=>a+b,0)/w.hrs.length : 0,
+          avgWatts: w.watts.length ? w.watts.reduce((a,b)=>a+b,0)/w.watts.length : 0,
+          label: (() => { const d = new Date(w.w); return `${d.getDate()}/${d.getMonth()+1}`; })()
+        })).sort((a,b) => a.w.localeCompare(b.w));
+      }, [runs]);
+
+      // Monthly aggregates
+      const monthlyAgg = useMemo(() => {
+        const m = {};
+        runs.forEach(a => {
+          const k = getMonthKey(a.d);
+          if (!m[k]) m[k] = { m: k, km: 0, runs: 0, sec: 0, cal: 0, paces: [], hrs: [], watts: [] };
+          m[k].km += a.km; m[k].runs++; m[k].sec += a.s; m[k].cal += (a.cal || 0);
+          if (a.p > 0 && a.p < 10) m[k].paces.push(a.p);
+          if (a.hr > 0) m[k].hrs.push(a.hr);
+          if (a.w > 0) m[k].watts.push(a.w);
+        });
+        return Object.values(m).map(v => ({
+          ...v,
+          avgPace: v.paces.length ? v.paces.reduce((a,b)=>a+b,0)/v.paces.length : 0,
+          avgHr: v.hrs.length ? v.hrs.reduce((a,b)=>a+b,0)/v.hrs.length : 0,
+          avgWatts: v.watts.length ? v.watts.reduce((a,b)=>a+b,0)/v.watts.length : 0,
+          label: (() => { const [y,mo] = v.m.split("-"); return `${MONTHS[parseInt(mo)-1]} ${y.slice(2)}`; })()
+        })).sort((a,b) => a.m.localeCompare(b.m));
+      }, [runs]);
+
+      // Training Load (TRIMP)
+      const trainingLoad = useMemo(() => {
+        return weeklyAgg.map(w => {
+          const hrFactor = w.avgHr > 0 ? (w.avgHr - ATHLETE.restHr) / (ATHLETE.maxHr - ATHLETE.restHr) : 0.6;
+          const trimp = (w.sec / 60) * hrFactor * 1.5;
+          return { ...w, trimp: Math.round(trimp), hrFactor };
+        });
+      }, [weeklyAgg]);
+
+      // Fitness / Fatigue / Form
+      const fitnessModel = useMemo(() => {
+        if (trainingLoad.length < 2) return [];
+        const result = [];
+        let ctl = 0, atl = 0;
+        trainingLoad.forEach((w) => {
+          ctl = ctl + (w.trimp - ctl) / 6;
+          atl = atl + (w.trimp - atl) / 1.2;
+          const tsb = ctl - atl;
+          result.push({
+            ...w, fitness: Math.round(ctl), fatigue: Math.round(atl), form: Math.round(tsb),
+            formStatus: tsb > 15 ? "peak" : tsb > 0 ? "fresh" : tsb > -15 ? "optimal" : "tired"
+          });
+        });
+        return result;
+      }, [trainingLoad]);
+
+      // VO2max
+      const vo2max = useMemo(() => {
+        const dist = 10000; const time = 48;
+        const v = dist / time;
+        const num = -4.60 + 0.182258 * v + 0.000104 * v * v;
+        const den = 0.8 + 0.1894393 * Math.exp(-0.012778 * time) + 0.2989558 * Math.exp(-0.1932605 * time);
+        return Math.round(num / den * 10) / 10;
+      }, []);
+
+      // HR Zone distribution
+      const energySystem = useMemo(() => {
+        let z1=0,z2=0,z3=0,z4=0,z5=0;
+        runs.forEach(a => {
+          if (a.hr <= 0) { z2 += a.s; return; }
+          if (a.hr < 124) z1 += a.s; else if (a.hr < 154) z2 += a.s;
+          else if (a.hr < 169) z3 += a.s; else if (a.hr < 184) z4 += a.s; else z5 += a.s;
+        });
+        const total = z1+z2+z3+z4+z5||1;
+        return [
+          {name:"Z1 Recovery",value:Math.round(z1/total*100),seconds:z1,color:"#6b7280"},
+          {name:"Z2 Aerobic",value:Math.round(z2/total*100),seconds:z2,color:"#3b82f6"},
+          {name:"Z3 Tempo",value:Math.round(z3/total*100),seconds:z3,color:"#10b981"},
+          {name:"Z4 Threshold",value:Math.round(z4/total*100),seconds:z4,color:"#f59e0b"},
+          {name:"Z5 VO2max",value:Math.round(z5/total*100),seconds:z5,color:"#ef4444"}
+        ];
+      }, [runs]);
+
+      const aerobicPct = useMemo(() => {
+        return energySystem.filter(z=>["Z1 Recovery","Z2 Aerobic","Z3 Tempo"].includes(z.name)).reduce((s,z)=>s+z.value,0);
+      }, [energySystem]);
+
+      // Pace trend
+      const paceTrend = useMemo(() => {
+        return weeklyAgg.map((w,i) => {
+          const slice = weeklyAgg.slice(Math.max(0,i-3),i+1);
+          const avg = slice.filter(s=>s.avgPace>0).reduce((a,b)=>a+b.avgPace,0)/Math.max(slice.filter(s=>s.avgPace>0).length,1);
+          return {...w, rollingPace:avg, rawPace:w.avgPace};
+        });
+      }, [weeklyAgg]);
+
+      // Efficiency
+      const efficiency = useMemo(() => {
+        return runs.filter(a=>a.hr>0&&a.p>0&&a.p<10).map(a=>({
+          date:a.d, speed:60/a.p, hr:a.hr, efficiency:(60/a.p)/a.hr*100, watts:a.w, km:a.km,
+          label:(()=>{const d=new Date(a.d);return `${d.getDate()}/${d.getMonth()+1}`;})()
+        })).sort((a,b)=>a.date.localeCompare(b.date));
+      }, [runs]);
+
+      // Heatmap
+      const heatmap = useMemo(() => { const m={}; data.forEach(a=>{m[a.d]=(m[a.d]||0)+1;}); return m; }, [data]);
+
+      // Streaks
+      const streaks = useMemo(() => {
+        const dates = [...new Set(data.map(a=>a.d))].sort();
+        let max=0,cur=0,prev=null;
+        dates.forEach(d=>{const c=new Date(d);if(prev&&(c-prev)/864e5<=1)cur++;else cur=1;if(cur>max)max=cur;prev=c;});
+        return {max,current:cur};
+      }, [data]);
+
+      // KPIs
+      const kpi = useMemo(() => {
+        const totalKm=runs.reduce((s,a)=>s+a.km,0);
+        const totalTime=data.reduce((s,a)=>s+a.s,0);
+        const totalCal=data.reduce((s,a)=>s+(a.cal||0),0);
+        const totalElev=runs.reduce((s,a)=>s+a.el,0);
+        const paces=runs.filter(a=>a.p>0&&a.p<10).map(a=>a.p);
+        const avgPace=paces.length?paces.reduce((a,b)=>a+b,0)/paces.length:0;
+        const hrs=runs.filter(a=>a.hr>0).map(a=>a.hr);
+        const avgHr=hrs.length?hrs.reduce((a,b)=>a+b,0)/hrs.length:0;
+        const wts=runs.filter(a=>a.w>0).map(a=>a.w);
+        const avgWatts=wts.length?wts.reduce((a,b)=>a+b,0)/wts.length:0;
+        return {totalKm,totalTime,totalCal,totalElev,avgPace,avgHr,avgWatts,runCount:runs.length,totalAct:data.length};
+      }, [data,runs]);
+
+      // Week comparison
+      const weekComp = useMemo(() => {
+        const tw=new Date(now);tw.setDate(now.getDate()-now.getDay());
+        const lw=new Date(tw);lw.setDate(tw.getDate()-7);
+        const thisW=runs.filter(a=>new Date(a.d)>=tw);
+        const lastW=runs.filter(a=>{const d=new Date(a.d);return d>=lw&&d<tw;});
+        return {thisKm:thisW.reduce((s,a)=>s+a.km,0),thisRuns:thisW.length,lastKm:lastW.reduce((s,a)=>s+a.km,0),lastRuns:lastW.length};
+      }, [runs]);
+
+      // Current form
+      const currentForm = useMemo(() => {
+        if (fitnessModel.length===0) return {status:"\u2014",fitness:0,fatigue:0,form:0};
+        return fitnessModel[fitnessModel.length-1];
+      }, [fitnessModel]);
+
+      // Coach insights
+      const insights = useMemo(() => {
+        const r = [];
+        if (weeklyAgg.length >= 8) {
+          const recent4=weeklyAgg.slice(-4), prev4=weeklyAgg.slice(-8,-4);
+          const rAvg=recent4.reduce((s,w)=>s+w.km,0)/4, pAvg=prev4.reduce((s,w)=>s+w.km,0)/4;
+          const pct=((rAvg/pAvg)-1)*100;
+          if(pct>10) r.push({type:"warning",icon:"trendUp",color:N.orange,title:`Volumen +${fmt(pct,0)}%`,text:`Promedio semanal ${fmt(rAvg)}km vs ${fmt(pAvg)}km anterior. Cuidado con sobreentrenamiento.`});
+          else if(pct<-10) r.push({type:"info",icon:"trendDown",color:N.blue,title:`Volumen ${fmt(pct,0)}%`,text:"Posible semana de descarga. Tu cuerpo se recupera."});
+          else r.push({type:"good",icon:"check",color:N.green,title:"Volumen estable",text:`Consistente en ~${fmt(rAvg)}km/semana. Excelente progresión.`});
+        }
+        if (paceTrend.length >= 8) {
+          const rp=paceTrend.slice(-4).filter(p=>p.rollingPace>0);
+          const op=paceTrend.slice(-8,-4).filter(p=>p.rollingPace>0);
+          if(rp.length&&op.length){
+            const rv=rp.reduce((s,p)=>s+p.rollingPace,0)/rp.length;
+            const ov=op.reduce((s,p)=>s+p.rollingPace,0)/op.length;
+            if(rv<ov-0.05) r.push({type:"good",icon:"zap",color:N.green,title:"Pace mejorando",text:`${fmtPace(rv)} vs ${fmtPace(ov)}/km. Tu sistema aeróbico se adapta.`});
+            else if(rv>ov+0.1) r.push({type:"warning",icon:"alert",color:N.yellow,title:"Pace más lento",text:`${fmtPace(rv)} vs ${fmtPace(ov)}/km. Posible fatiga acumulada.`});
+          }
+        }
+        if(currentForm.form!==undefined){
+          const f=currentForm.form;
+          if(f>10) r.push({type:"good",icon:"sparkles",color:N.cyan,title:"Forma óptima",text:`TSB de +${f}. Estás fresco para competir.`});
+          else if(f>-5) r.push({type:"info",icon:"target",color:N.blue,title:"En construcción",text:`TSB de ${f}. Buen balance carga/recuperación.`});
+          else r.push({type:"warning",icon:"battery",color:N.red,title:"Fatiga alta",text:`TSB de ${f}. Considera reducir volumen 20-30%.`});
+        }
+        if(aerobicPct>75) r.push({type:"good",icon:"heart",color:N.green,title:`Base aeróbica: ${aerobicPct}%`,text:"Excelente distribución. 80/20 es el estándar de élite."});
+        else r.push({type:"warning",icon:"heart",color:N.orange,title:`Base aeróbica: ${aerobicPct}%`,text:"Intenta más carreras en Z2. La regla 80/20 mejora rendimiento."});
+        return r;
+      }, [weeklyAgg,paceTrend,currentForm,aerobicPct]);
+
+      // Distance distribution
+      const distDist = useMemo(() => {
+        const b=[{name:"<5K",min:0,max:5,c:0,color:N.cyan},{name:"5-10K",min:5,max:10,c:0,color:N.blue},{name:"10-15K",min:10,max:15,c:0,color:N.green},{name:"15-21K",min:15,max:21,c:0,color:N.purple},{name:"21K+",min:21,max:999,c:0,color:N.orange}];
+        runs.forEach(a=>{const bucket=b.find(x=>a.km>=x.min&&a.km<x.max);if(bucket)bucket.c++;});
+        return b.map(x=>({name:x.name,value:x.c,color:x.color}));
+      }, [runs]);
+
+      // Day distribution
+      const dayDist = useMemo(() => {
+        const d=[0,0,0,0,0,0,0];
+        runs.forEach(a=>d[new Date(a.d).getDay()]++);
+        return ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"].map((n,i)=>({day:n,count:d[i]}));
+      }, [runs]);
+
+      // Radar
+      const radarData = useMemo(() => {
+        const recent=weeklyAgg.slice(-4);
+        const avgKm=recent.reduce((s,w)=>s+w.km,0)/Math.max(recent.length,1);
+        const avgRuns=recent.reduce((s,w)=>s+w.runs,0)/Math.max(recent.length,1);
+        return [
+          {subject:"Volumen",A:Math.min(avgKm/80*100,100)},
+          {subject:"Frecuencia",A:Math.min(avgRuns/6*100,100)},
+          {subject:"Velocidad",A:Math.min((7-kpi.avgPace)/3*100,100)},
+          {subject:"Resistencia",A:Math.min(kpi.totalKm/800*100,100)},
+          {subject:"Potencia",A:Math.min(kpi.avgWatts/280*100,100)},
+          {subject:"Consistencia",A:Math.min(streaks.max/10*100,100)}
+        ];
+      }, [weeklyAgg,kpi,streaks]);
+
+      // ═══════════════════════════════════════════════════
+      // RENDER HELPERS
+      // ═══════════════════════════════════════════════════
+      const Card = ({children,className="",glow,onClick}) => (
+        <div onClick={onClick} className={`rounded-2xl border transition-all duration-500 ${onClick?"cursor-pointer hover:scale-105":""} ${className}`}
+          style={{background:"rgba(17,24,39,0.8)",backdropFilter:"blur(8px)",borderColor:"rgba(55,65,81,0.5)",
+            ...(glow?{boxShadow:`0 0 40px ${glow}15, 0 0 80px ${glow}08`}:{})}}>
+          {children}
+        </div>
+      );
+
+      const Metric = ({label,value,sub,iconType,color=N.cyan,large}) => (
+        <Card className="p-4" glow={color}>
+          <div className="flex items-center gap-2 mb-2">
+            {iconType && <div className="p-1.5 rounded-lg" style={{background:`${color}18`}}><Icon type={iconType} size={14} color={color}/></div>}
+            <span style={{color:"#9ca3af",fontSize:"0.75rem"}}>{label}</span>
+          </div>
+          <p className={`font-bold text-white ${large?"text-3xl":"text-xl"}`}>{value}</p>
+          {sub && <p style={{fontSize:"0.625rem",color:"#6b7280",marginTop:2}}>{sub}</p>}
+        </Card>
+      );
+
+      const TT = ({active,payload,label}) => {
+        if(!active||!payload?.length) return null;
+        return (
+          <div style={{background:"rgba(17,24,39,0.95)",backdropFilter:"blur(8px)",border:"1px solid #374151",borderRadius:12,padding:12,boxShadow:"0 25px 50px rgba(0,0,0,0.5)"}}>
+            <p style={{color:"#9ca3af",fontSize:"0.625rem",marginBottom:4}}>{label}</p>
+            {payload.map((p,i)=><p key={i} style={{fontSize:"0.75rem",fontWeight:500,color:p.color||p.stroke}}>{p.name}: {typeof p.value==="number"?fmt(p.value):p.value}</p>)}
+          </div>
+        );
+      };
+
+      const CoachTip = ({title, explain, action, color=N.cyan}) => (
+        <div style={{background:"rgba(255,255,255,0.02)",borderRadius:12,padding:14,border:`1px solid ${color}20`,minWidth:200,display:"flex",flexDirection:"column",gap:10}}>
+          <div style={{display:"flex",alignItems:"center",gap:6}}>
+            <Icon type="sparkles" size={13} color={color}/>
+            <span style={{fontSize:"0.7rem",fontWeight:700,color,textTransform:"uppercase",letterSpacing:"0.05em"}}>Coach</span>
+          </div>
+          <div>
+            <p style={{fontSize:"0.75rem",fontWeight:700,color:"white",marginBottom:4}}>{title}</p>
+            <p style={{fontSize:"0.675rem",color:"#9ca3af",lineHeight:1.5}}>{explain}</p>
+          </div>
+          <div style={{borderTop:"1px solid rgba(255,255,255,0.05)",paddingTop:8}}>
+            <p style={{fontSize:"0.625rem",color:"#6b7280",marginBottom:2}}>PRÓXIMA SEMANA</p>
+            <p style={{fontSize:"0.7rem",color:N.green,fontWeight:600}}>{action}</p>
+          </div>
+        </div>
+      );
+
+      const FormBadge = ({status}) => {
+        const cfg = {
+          peak:{color:N.green,bg:"#10b98118",label:"PEAK FORM",icon:"\uD83D\uDD25"},
+          fresh:{color:N.cyan,bg:"#06b6d418",label:"FRESCO",icon:"\u2728"},
+          optimal:{color:N.blue,bg:"#3b82f618",label:"ÓPTIMO",icon:"\uD83D\uDCAA"},
+          tired:{color:N.red,bg:"#ef444418",label:"FATIGADO",icon:"\uD83D\uDE2E\u200D\uD83D\uDCA8"}
+        }[status]||{color:N.blue,bg:"#3b82f618",label:status,icon:"\uD83C\uDFC3"};
+        return <span style={{display:"inline-flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:9999,fontSize:"0.75rem",fontWeight:700,letterSpacing:"0.05em",color:cfg.color,backgroundColor:cfg.bg,border:`1px solid ${cfg.color}30`}}><span>{cfg.icon}</span> {cfg.label}</span>;
+      };
+
+      // Heatmap
+      const HeatmapGrid = () => {
+        const weeks=[];
+        const start=new Date("2026-01-01"), end=new Date("2026-04-17");
+        let cur=new Date(start);cur.setDate(cur.getDate()-cur.getDay());
+        while(cur<=end){
+          const week=[];
+          for(let i=0;i<7;i++){const dd=new Date(cur);dd.setDate(cur.getDate()+i);const k=dd.toISOString().split("T")[0];week.push({date:k,count:heatmap[k]||0,in:dd>=start&&dd<=end});}
+          weeks.push(week);cur.setDate(cur.getDate()+7);
+        }
+        const gc=(c)=>c===0?"#111827":c===1?"#064e3b":c===2?"#059669":"#10b981";
+        return (
+          <div style={{display:"flex",gap:3}}>
+            {weeks.map((w,wi)=>(
+              <div key={wi} style={{display:"flex",flexDirection:"column",gap:3}}>
+                {w.map((d,di)=>(
+                  <div key={di} title={`${d.date}: ${d.count} actividades`}
+                    style={{width:13,height:13,borderRadius:3,backgroundColor:d.in?gc(d.count):"transparent",transition:"all 0.2s"}}/>
+                ))}
+              </div>
+            ))}
+          </div>
+        );
+      };
+
+      const tabs = [
+        {id:"overview",label:"Overview",icon:"barChart"},
+        {id:"coaching",label:"Coach",icon:"target"},
+        {id:"running",label:"Running",icon:"foot"},
+        {id:"fitness",label:"Fitness",icon:"heart"},
+        {id:"other",label:"Gym & Más",icon:"dumbbell"},
+        {id:"consistency",label:"Consistencia",icon:"calendar"},
+        {id:"shoes",label:"Tenis",icon:"foot"}
+      ];
+
+      // ═══════════════════════════════════════════════════
+      // RENDER
+      // ═══════════════════════════════════════════════════
+      return (
+        <div style={{minHeight:"100vh",color:"white",padding:"24px",fontFamily:"'Inter',system-ui,sans-serif",background:"linear-gradient(135deg,#0a0a0f 0%,#0d1117 50%,#0a0f1a 100%)"}}>
+
+          {/* HEADER */}
+          <div style={{display:"flex",flexWrap:"wrap",alignItems:"center",justifyContent:"space-between",marginBottom:24,gap:16}}>
+            <div style={{display:"flex",alignItems:"center",gap:16}}>
+              <div style={{position:"relative"}}>
+                <div style={{position:"absolute",inset:0,borderRadius:16,background:"linear-gradient(135deg,#06b6d4,#a855f7)",filter:"blur(16px)",opacity:0.5}}/>
+                <div style={{position:"relative",width:56,height:56,borderRadius:16,background:"linear-gradient(135deg,#06b6d4,#a855f7)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,fontWeight:900,color:"white"}}>LS</div>
+              </div>
+              <div>
+                <h1 style={{fontSize:"1.5rem",fontWeight:900,letterSpacing:"-0.025em",background:"linear-gradient(135deg,#06b6d4,#a855f7,#ec4899)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>{ATHLETE.name}</h1>
+                <div style={{display:"flex",alignItems:"center",gap:12,marginTop:2}}>
+                  <span style={{color:"#6b7280",fontSize:"0.75rem"}}>{ATHLETE.weight}kg · Strava desde {ATHLETE.joined}</span>
+                  <FormBadge status={currentForm.formStatus||"optimal"}/>
+                </div>
+              </div>
+            </div>
+            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+              {[["30d","30D"],["90d","90D"],["ytd","2026"],["2025","2025"],["all","ALL"]].map(([v,l])=>(
+                <button key={v} onClick={()=>setPeriod(v)}
+                  style={{padding:"6px 12px",borderRadius:8,fontSize:"0.6875rem",fontWeight:700,letterSpacing:"0.05em",border:period===v?"1px solid rgba(255,255,255,0.2)":"1px solid transparent",background:period===v?"rgba(255,255,255,0.1)":"transparent",color:period===v?"white":"#6b7280",cursor:"pointer",transition:"all 0.2s"}}>
+                  {l}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* TABS */}
+          <div className="scrollbar-hide" style={{display:"flex",gap:4,marginBottom:24,overflowX:"auto",paddingBottom:8}}>
+            {tabs.map(({id,label,icon:ic})=>(
+              <button key={id} onClick={()=>setTab(id)}
+                style={{display:"flex",alignItems:"center",gap:6,padding:"8px 12px",borderRadius:12,fontSize:"0.75rem",fontWeight:600,whiteSpace:"nowrap",border:tab===id?"1px solid rgba(255,255,255,0.15)":"1px solid transparent",background:tab===id?"rgba(255,255,255,0.1)":"transparent",color:tab===id?"white":"#6b7280",cursor:"pointer",transition:"all 0.2s"}}>
+                <Icon type={ic} size={14}/> {label}
+              </button>
+            ))}
+          </div>
+
+          {/* ═══════ OVERVIEW ═══════ */}
+          {tab==="overview" && (
+            <div style={{display:"flex",flexDirection:"column",gap:20}}>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:12}}>
+                <Metric iconType="foot" label="Km Running" value={fmt(kpi.totalKm,0)} sub={`${kpi.runCount} carreras`} color={N.cyan} large/>
+                <Metric iconType="clock" label="Tiempo Total" value={fmtTime(kpi.totalTime)} sub={`${kpi.totalAct} actividades`} color={N.purple}/>
+                <Metric iconType="zap" label="Pace Promedio" value={fmtPace(kpi.avgPace)} sub="min/km" color={N.green}/>
+                <Metric iconType="flame" label="Calorías" value={`${(kpi.totalCal/1000).toFixed(0)}K`} sub={`${fmt(kpi.totalCal)} kcal`} color={N.orange}/>
+                <Metric iconType="mountain" label="Elevación" value={`${kpi.totalElev}m`} sub="ganancia total" color={N.yellow}/>
+                <Metric iconType="gauge" label="VO2max Est." value={`${vo2max}`} sub="ml/kg/min" color={N.pink}/>
+              </div>
+
+              {/* All-time career stats */}
+              <Card className="p-5" glow={N.purple}>
+                <h3 style={{fontSize:"0.875rem",fontWeight:700,color:"#e5e7eb",marginBottom:12}}>Carrera en Strava (desde {ATHLETE.joined})</h3>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:12}}>
+                  <div style={{textAlign:"center",background:"rgba(255,255,255,0.02)",borderRadius:12,padding:12}}>
+                    <p style={{fontSize:"0.625rem",color:"#6b7280",textTransform:"uppercase"}}>Km Totales</p>
+                    <p style={{fontSize:"1.5rem",fontWeight:900,background:"linear-gradient(135deg,#06b6d4,#a855f7)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>{(ATHLETE.allTimeKm/1000).toFixed(1)}K</p>
+                    <p style={{fontSize:"0.625rem",color:"#6b7280"}}>{ATHLETE.allTimeKm.toLocaleString()} km</p>
+                  </div>
+                  <div style={{textAlign:"center",background:"rgba(255,255,255,0.02)",borderRadius:12,padding:12}}>
+                    <p style={{fontSize:"0.625rem",color:"#6b7280",textTransform:"uppercase"}}>Runs Totales</p>
+                    <p style={{fontSize:"1.5rem",fontWeight:900,color:N.cyan}}>{ATHLETE.allTimeRuns.toLocaleString()}</p>
+                    <p style={{fontSize:"0.625rem",color:"#6b7280"}}>carreras</p>
+                  </div>
+                  <div style={{textAlign:"center",background:"rgba(255,255,255,0.02)",borderRadius:12,padding:12}}>
+                    <p style={{fontSize:"0.625rem",color:"#6b7280",textTransform:"uppercase"}}>Horas Running</p>
+                    <p style={{fontSize:"1.5rem",fontWeight:900,color:N.green}}>{ATHLETE.allTimeHours}</p>
+                    <p style={{fontSize:"0.625rem",color:"#6b7280"}}>~{fmt(ATHLETE.allTimeHours/365,1)} hrs/día</p>
+                  </div>
+                  <div style={{textAlign:"center",background:"rgba(255,255,255,0.02)",borderRadius:12,padding:12}}>
+                    <p style={{fontSize:"0.625rem",color:"#6b7280",textTransform:"uppercase"}}>Elevación Total</p>
+                    <p style={{fontSize:"1.5rem",fontWeight:900,color:N.orange}}>28.4K</p>
+                    <p style={{fontSize:"0.625rem",color:"#6b7280"}}>metros · ~3.2× Everest</p>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Insights */}
+              {insights.length>0 && (
+                <Card className="p-5" glow={N.cyan}>
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+                    <Icon type="sparkles" size={16} color="#06b6d4"/>
+                    <h3 style={{fontSize:"0.875rem",fontWeight:700,color:"white"}}>Coach AI Insights</h3>
+                  </div>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:12}}>
+                    {insights.map((ins,i)=>(
+                      <div key={i} style={{display:"flex",alignItems:"flex-start",gap:12,background:"rgba(255,255,255,0.02)",borderRadius:12,padding:12,border:"1px solid rgba(255,255,255,0.03)"}}>
+                        <div style={{padding:6,borderRadius:8,marginTop:2,background:`${ins.color}18`}}><Icon type={ins.icon} size={14} color={ins.color}/></div>
+                        <div>
+                          <p style={{fontSize:"0.75rem",fontWeight:700,color:"white"}}>{ins.title}</p>
+                          <p style={{fontSize:"0.6875rem",color:"#9ca3af",marginTop:2,lineHeight:1.5}}>{ins.text}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              )}
+
+              {/* Fitness/Fatigue/Form + Coach + Radar */}
+              <div style={{display:"grid",gridTemplateColumns:"5fr 2fr",gap:16}}>
+                <Card className="p-5" glow={N.blue}>
+                  <div className="coach-row" style={{display:"flex",gap:16,alignItems:"stretch"}}>
+                    <div style={{flex:1,minWidth:0}}>
+                      <h3 style={{fontSize:"0.875rem",fontWeight:700,color:"#e5e7eb",marginBottom:12}}>Fitness · Fatiga · Forma (CTL/ATL/TSB)</h3>
+                      <ResponsiveContainer width="100%" height={240}>
+                        <ComposedChart data={fitnessModel}>
+                          <defs>
+                            <linearGradient id="gFit" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={N.cyan} stopOpacity={0.3}/><stop offset="95%" stopColor={N.cyan} stopOpacity={0}/></linearGradient>
+                            <linearGradient id="gFat" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={N.red} stopOpacity={0.2}/><stop offset="95%" stopColor={N.red} stopOpacity={0}/></linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#ffffff08"/>
+                          <XAxis dataKey="label" tick={{fill:"#6b7280",fontSize:10}}/>
+                          <YAxis tick={{fill:"#6b7280",fontSize:10}}/>
+                          <Tooltip content={<TT/>}/>
+                          <Area type="monotone" dataKey="fitness" name="Fitness (CTL)" stroke={N.cyan} fill="url(#gFit)" strokeWidth={2}/>
+                          <Area type="monotone" dataKey="fatigue" name="Fatiga (ATL)" stroke={N.red} fill="url(#gFat)" strokeWidth={2}/>
+                          <Line type="monotone" dataKey="form" name="Forma (TSB)" stroke={N.green} strokeWidth={2.5} dot={false}/>
+                          <Legend formatter={v=><span style={{color:"#9ca3af",fontSize:"0.625rem"}}>{v}</span>}/>
+                        </ComposedChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <CoachTip color={N.blue}
+                      title={currentForm.form > 5 ? "Estás fresco" : currentForm.form > -10 ? "Carga balanceada" : "Fatiga acumulada"}
+                      explain={`CTL (fitness) mide tu adaptación a largo plazo. ATL (fatiga) la carga reciente. TSB = CTL−ATL: positivo = fresco, negativo = cargado. Tu TSB actual: ${currentForm.form || 0}.`}
+                      action={currentForm.form > 5 ? "Buen momento para un workout intenso o test de ritmo en 10K." : currentForm.form > -10 ? "Mantén el volumen actual. Estás construyendo fitness sin sobrecargar." : "Reduce volumen 20-30% esta semana. Incluye 2 días de descanso activo."}
+                    />
+                  </div>
+                </Card>
+                <Card className="p-5" glow={N.purple}>
+                  <h3 style={{fontSize:"0.875rem",fontWeight:700,color:"#e5e7eb",marginBottom:12}}>Perfil del Atleta</h3>
+                  <ResponsiveContainer width="100%" height={240}>
+                    <RadarChart data={radarData} cx="50%" cy="50%">
+                      <PolarGrid stroke="#ffffff10"/>
+                      <PolarAngleAxis dataKey="subject" tick={{fill:"#9ca3af",fontSize:10}}/>
+                      <PolarRadiusAxis tick={false} axisLine={false}/>
+                      <Radar dataKey="A" stroke={N.purple} fill={N.purple} fillOpacity={0.2} strokeWidth={2}/>
+                    </RadarChart>
+                  </ResponsiveContainer>
+                  <CoachTip color={N.purple}
+                    title="Tu perfil multideportivo"
+                    explain="El radar muestra tus fortalezas relativas: resistencia, velocidad, consistencia, fuerza y volumen. Un perfil balanceado reduce riesgo de lesiones."
+                    action="Tu área más débil es oportunidad de mejora. Dedica 1 sesión/semana al aspecto menos desarrollado del radar."
+                  />
+                </Card>
+              </div>
+
+              {/* Weekly/Monthly Volume */}
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+                <Card className="p-5">
+                  <h3 style={{fontSize:"0.875rem",fontWeight:700,color:"#e5e7eb",marginBottom:12}}>Volumen Semanal</h3>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <ComposedChart data={weeklyAgg.slice(-16)}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#ffffff08"/>
+                      <XAxis dataKey="label" tick={{fill:"#6b7280",fontSize:10}}/>
+                      <YAxis tick={{fill:"#6b7280",fontSize:10}}/>
+                      <Tooltip content={<TT/>}/>
+                      <Bar dataKey="km" name="Km" fill={N.cyan} radius={[4,4,0,0]} fillOpacity={0.8}/>
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                </Card>
+                <Card className="p-5">
+                  <h3 style={{fontSize:"0.875rem",fontWeight:700,color:"#e5e7eb",marginBottom:12}}>Volumen Mensual</h3>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <BarChart data={monthlyAgg}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#ffffff08"/>
+                      <XAxis dataKey="label" tick={{fill:"#6b7280",fontSize:11}}/>
+                      <YAxis tick={{fill:"#6b7280",fontSize:10}}/>
+                      <Tooltip content={<TT/>}/>
+                      <Bar dataKey="km" name="Km" fill={N.purple} radius={[4,4,0,0]} fillOpacity={0.8}/>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </Card>
+              </div>
+
+              {/* Pie + Week Comp + Calories */}
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:16}}>
+                <Card className="p-5">
+                  <h3 style={{fontSize:"0.875rem",fontWeight:700,color:"#e5e7eb",marginBottom:12}}>Distribución</h3>
+                  <ResponsiveContainer width="100%" height={180}>
+                    <PieChart>
+                      <Pie data={[{name:"Run",value:runs.length},{name:"Gym",value:weights.length},{name:"Ride",value:rides.length}].filter(d=>d.value>0)}
+                        cx="50%" cy="50%" innerRadius={40} outerRadius={70} paddingAngle={4} dataKey="value">
+                        {[N.cyan,N.orange,N.green].map((c,i)=><Cell key={i} fill={c}/>)}
+                      </Pie>
+                      <Tooltip/><Legend formatter={v=><span style={{color:"#9ca3af",fontSize:"0.625rem"}}>{v}</span>}/>
+                    </PieChart>
+                  </ResponsiveContainer>
+                </Card>
+                <Card className="p-5">
+                  <h3 style={{fontSize:"0.875rem",fontWeight:700,color:"#e5e7eb",marginBottom:12}}>Semana Actual vs Anterior</h3>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginTop:16}}>
+                    <div style={{textAlign:"center",background:"rgba(255,255,255,0.02)",borderRadius:12,padding:12}}>
+                      <p style={{fontSize:"0.625rem",color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.05em"}}>Esta semana</p>
+                      <p style={{fontSize:"1.5rem",fontWeight:900,color:"#06b6d4",marginTop:4}}>{fmt(weekComp.thisKm)}</p>
+                      <p style={{fontSize:"0.625rem",color:"#6b7280"}}>{weekComp.thisRuns} runs</p>
+                    </div>
+                    <div style={{textAlign:"center",background:"rgba(255,255,255,0.02)",borderRadius:12,padding:12}}>
+                      <p style={{fontSize:"0.625rem",color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.05em"}}>Anterior</p>
+                      <p style={{fontSize:"1.5rem",fontWeight:900,color:"#a855f7",marginTop:4}}>{fmt(weekComp.lastKm)}</p>
+                      <p style={{fontSize:"0.625rem",color:"#6b7280"}}>{weekComp.lastRuns} runs</p>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-5">
+                  <h3 style={{fontSize:"0.875rem",fontWeight:700,color:"#e5e7eb",marginBottom:12}}>Calorías por Mes</h3>
+                  <ResponsiveContainer width="100%" height={150}>
+                    <BarChart data={monthlyAgg}>
+                      <XAxis dataKey="label" tick={{fill:"#6b7280",fontSize:10}}/>
+                      <Tooltip content={<TT/>}/>
+                      <Bar dataKey="cal" name="Kcal" fill={N.orange} radius={[4,4,0,0]} fillOpacity={0.7}/>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </Card>
+              </div>
+            </div>
+          )}
+
+          {/* ═══════ COACHING ═══════ */}
+          {tab==="coaching" && (
+            <div style={{display:"flex",flexDirection:"column",gap:20}}>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:12}}>
+                <Metric iconType="battery" label="Fitness (CTL)" value={currentForm.fitness||0} sub="carga crónica" color={N.cyan}/>
+                <Metric iconType="battery" label="Fatiga (ATL)" value={currentForm.fatigue||0} sub="carga aguda" color={N.red}/>
+                <Metric iconType="gauge" label="Forma (TSB)" value={currentForm.form||0} sub={currentForm.formStatus||"\u2014"} color={N.green}/>
+                <Metric iconType="gauge" label="VO2max Est." value={vo2max} sub="ml/kg/min · bueno" color={N.pink}/>
+              </div>
+
+              <Card className="p-5" glow={N.cyan}>
+                <h3 style={{fontSize:"0.875rem",fontWeight:700,color:"#e5e7eb",marginBottom:12}}>Carga de Entrenamiento Semanal (TRIMP)</h3>
+                <div className="coach-row" style={{display:"flex",gap:16,alignItems:"stretch"}}>
+                  <div style={{flex:1,minWidth:0}}>
+                    <ResponsiveContainer width="100%" height={250}>
+                      <ComposedChart data={trainingLoad.slice(-16)}>
+                        <defs><linearGradient id="gTrimp" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={N.cyan} stopOpacity={0.4}/><stop offset="95%" stopColor={N.cyan} stopOpacity={0}/></linearGradient></defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff08"/>
+                        <XAxis dataKey="label" tick={{fill:"#6b7280",fontSize:10}}/>
+                        <YAxis tick={{fill:"#6b7280",fontSize:10}}/>
+                        <Tooltip content={<TT/>}/>
+                        <Area type="monotone" dataKey="trimp" name="TRIMP" stroke={N.cyan} fill="url(#gTrimp)" strokeWidth={2}/>
+                        <Bar dataKey="km" name="Km" fill={N.purple} radius={[4,4,0,0]} fillOpacity={0.4}/>
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <CoachTip color={N.cyan}
+                    title={(() => { const recent = trainingLoad.slice(-4); const avg = recent.reduce((s,w) => s+w.trimp, 0)/Math.max(recent.length,1); return avg > 400 ? "Carga alta — ¡cuidado!" : avg > 250 ? "Carga progresiva" : "Carga conservadora"; })()}
+                    explain={`TRIMP mide el estrés total: duración × intensidad cardíaca. Semanas altas (>400) requieren recuperación. Tu TRIMP promedio reciente: ${Math.round(trainingLoad.slice(-4).reduce((s,w)=>s+w.trimp,0)/Math.max(trainingLoad.slice(-4).length,1))}.`}
+                    action={(() => { const recent = trainingLoad.slice(-4); const avg = recent.reduce((s,w)=>s+w.trimp,0)/Math.max(recent.length,1); return avg > 400 ? "Semana de descarga: reduce volumen 30% y mantén solo runs fáciles Z2." : avg > 250 ? "Buen ritmo. Agrega un intervalo corto (6×400m) para estímulo sin exceso." : "Puedes subir volumen ~10%. Agrega 1 sesión de tempo de 20 min."; })()}
+                  />
+                </div>
+              </Card>
+
+              <Card className="p-5" glow={N.green}>
+                <h3 style={{fontSize:"0.875rem",fontWeight:700,color:"#e5e7eb",marginBottom:12}}>Eficiencia Cardíaca (Velocidad / FC)</h3>
+                <div className="coach-row" style={{display:"flex",gap:16,alignItems:"stretch"}}>
+                  <div style={{flex:1,minWidth:0}}>
+                    <ResponsiveContainer width="100%" height={220}>
+                      <AreaChart data={efficiency}>
+                        <defs><linearGradient id="gEff" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={N.green} stopOpacity={0.3}/><stop offset="95%" stopColor={N.green} stopOpacity={0}/></linearGradient></defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff08"/>
+                        <XAxis dataKey="label" tick={{fill:"#6b7280",fontSize:9}} interval="preserveStartEnd"/>
+                        <YAxis tick={{fill:"#6b7280",fontSize:10}}/>
+                        <Tooltip content={({active,payload})=>{
+                          if(!active||!payload?.length)return null;
+                          const d=payload[0].payload;
+                          return <div style={{background:"rgba(17,24,39,0.95)",border:"1px solid #374151",borderRadius:12,padding:12}}><p style={{fontSize:"0.625rem",color:"#9ca3af"}}>{d.date}</p><p style={{fontSize:"0.75rem",color:N.green,fontWeight:700}}>Eficiencia: {fmt(d.efficiency,2)}</p><p style={{fontSize:"0.625rem",color:"#9ca3af"}}>{fmt(d.speed,1)} km/h · {fmt(d.hr,0)} bpm · {fmt(d.km,1)}km</p></div>;
+                        }}/>
+                        <Area type="monotone" dataKey="efficiency" stroke={N.green} fill="url(#gEff)" strokeWidth={2} dot={false}/>
+                      </AreaChart>
+                    </ResponsiveContainer>
+                    <p style={{fontSize:"0.625rem",color:"#6b7280",marginTop:4}}>Mayor = más eficiente (más rápido a menor FC)</p>
+                  </div>
+                  <CoachTip color={N.green}
+                    title={(() => { const eff = efficiency.slice(-5); const trend = eff.length>=2 ? eff[eff.length-1].efficiency - eff[0].efficiency : 0; return trend > 0 ? "Eficiencia mejorando" : "Eficiencia estancada"; })()}
+                    explain="Velocidad ÷ FC: cuanto más alto, más rápido corres con menos esfuerzo cardíaco. Una tendencia al alza indica mejor fitness aeróbico."
+                    action={(() => { const eff = efficiency.slice(-5); const trend = eff.length>=2 ? eff[eff.length-1].efficiency - eff[0].efficiency : 0; return trend > 0 ? "Sigue con runs largos en Z2 — tu corazón está adaptándose bien." : "Agrega 1 sesión de tempo (20min a umbral) para estimular adaptación cardíaca."; })()}
+                  />
+                </div>
+              </Card>
+              <Card className="p-5" glow={N.orange}>
+                <h3 style={{fontSize:"0.875rem",fontWeight:700,color:"#e5e7eb",marginBottom:12}}>Potencia de Carrera (Watts)</h3>
+                <div className="coach-row" style={{display:"flex",gap:16,alignItems:"stretch"}}>
+                  <div style={{flex:1,minWidth:0}}>
+                    <ResponsiveContainer width="100%" height={220}>
+                      <ComposedChart data={weeklyAgg.filter(w=>w.avgWatts>0).slice(-16)}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff08"/>
+                        <XAxis dataKey="label" tick={{fill:"#6b7280",fontSize:10}}/>
+                        <YAxis tick={{fill:"#6b7280",fontSize:10}} domain={[180,250]}/>
+                        <Tooltip content={<TT/>}/>
+                        <Bar dataKey="avgWatts" name="Watts Avg" fill={N.orange} radius={[4,4,0,0]} fillOpacity={0.6}/>
+                        <Line type="monotone" dataKey="avgWatts" name="Tendencia" stroke={N.yellow} strokeWidth={2} dot={false}/>
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <CoachTip color={N.orange}
+                    title={(() => { const wdata = weeklyAgg.filter(w=>w.avgWatts>0).slice(-8); const avg = wdata.reduce((s,w)=>s+w.avgWatts,0)/Math.max(wdata.length,1); return avg > 210 ? "Buena potencia" : "Potencia en desarrollo"; })()}
+                    explain="Los watts en running reflejan tu economía de carrera. Más watts a mismo pace = terreno o viento; más watts con mejor pace = más fuerza."
+                    action={(() => { const wdata = weeklyAgg.filter(w=>w.avgWatts>0).slice(-8); const avg = wdata.reduce((s,w)=>s+w.avgWatts,0)/Math.max(wdata.length,1); return avg > 210 ? "Mantén el trabajo de fuerza en gym — complementa tu potencia en carrera." : "Incorpora cuestas cortas (6×100m) para mejorar potencia muscular."; })()}
+                  />
+                </div>
+              </Card>
+
+              <Card className="p-5" glow={N.purple}>
+                <h3 style={{fontSize:"0.875rem",fontWeight:700,color:"#e5e7eb",marginBottom:12,display:"flex",alignItems:"center",gap:8}}><Icon type="target" size={16} color="#a855f7"/> Recomendaciones del Coach</h3>
+                <div style={{display:"flex",flexDirection:"column",gap:12}}>
+                  {[
+                    {title:"Regla del 10%",text:`Tu volumen actual es ~${fmt(weeklyAgg.slice(-4).reduce((s,w)=>s+w.km,0)/4)}km/semana. No aumentes más de ${fmt(weeklyAgg.slice(-4).reduce((s,w)=>s+w.km,0)/4*0.1)}km la próxima semana.`,color:N.cyan},
+                    {title:"Carreras fáciles",text:`${aerobicPct}% de tu entrenamiento es aeróbico. ${aerobicPct>=75?"Excelente polarización.":"Intenta que el 80% sea en Z2."}`,color:N.green},
+                    {title:"VO2max potencial",text:`Con VO2max de ${vo2max}, tu potencial en 10K es ~${fmt(2880/60)}min y en media maratón ~${fmt(6582/60)}min. Mejora con intervalos 4×1200m a pace 4:40.`,color:N.pink},
+                    {title:"Recuperación",text:`Con ${weights.length} sesiones de gym, tu fuerza complementa el running. Mantén 2-3 sesiones/semana.`,color:N.orange}
+                  ].map((rec,i)=>(
+                    <div key={i} style={{display:"flex",alignItems:"flex-start",gap:12,background:"rgba(255,255,255,0.015)",borderRadius:12,padding:14,border:"1px solid rgba(255,255,255,0.03)"}}>
+                      <div style={{width:4,minHeight:40,borderRadius:4,backgroundColor:rec.color,flexShrink:0}}/>
+                      <div><p style={{fontSize:"0.75rem",fontWeight:700,color:"white"}}>{rec.title}</p><p style={{fontSize:"0.6875rem",color:"#9ca3af",marginTop:4,lineHeight:1.5}}>{rec.text}</p></div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            </div>
+          )}
+
+          {/* ═══════ RUNNING ═══════ */}
+          {tab==="running" && (
+            <div style={{display:"flex",flexDirection:"column",gap:20}}>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:12}}>
+                {Object.entries(ATHLETE.bestEfforts).map(([dist,be])=>(
+                  <Card key={dist} className="p-4" glow={N.yellow} style={{textAlign:"center"}}>
+                    <p style={{fontSize:"0.625rem",color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.05em"}}>{dist}</p>
+                    <p style={{fontSize:"1.5rem",fontWeight:900,color:"white",marginTop:4}}>{fmtTime(be.time)}</p>
+                    <p style={{fontSize:"0.625rem",color:"#06b6d4",marginTop:4}}>{be.pace} · {be.date}</p>
+                  </Card>
+                ))}
+              </div>
+
+              <Card className="p-5" glow={N.green}>
+                <h3 style={{fontSize:"0.875rem",fontWeight:700,color:"#e5e7eb",marginBottom:12}}>Evolución del Pace (Rolling 4-Week)</h3>
+                <div className="coach-row" style={{display:"flex",gap:16,alignItems:"stretch"}}>
+                  <div style={{flex:1,minWidth:0}}>
+                    <ResponsiveContainer width="100%" height={280}>
+                      <ComposedChart data={paceTrend.filter(p=>p.rollingPace>0)}>
+                        <defs><linearGradient id="gPace" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={N.green} stopOpacity={0.3}/><stop offset="95%" stopColor={N.green} stopOpacity={0}/></linearGradient></defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff08"/>
+                        <XAxis dataKey="label" tick={{fill:"#6b7280",fontSize:10}}/>
+                        <YAxis reversed domain={["dataMin-0.3","dataMax+0.3"]} tick={{fill:"#6b7280",fontSize:10}} tickFormatter={v=>fmtPace(v)}/>
+                        <Tooltip content={({active,payload})=>{
+                          if(!active||!payload?.length)return null;
+                          const d=payload[0].payload;
+                          return <div style={{background:"rgba(17,24,39,0.95)",border:"1px solid #374151",borderRadius:12,padding:12}}><p style={{fontSize:"0.75rem",color:"#9ca3af"}}>{d.w}</p><p style={{fontSize:"0.875rem",fontWeight:700,color:N.green}}>Rolling: {fmtPace(d.rollingPace)}/km</p><p style={{fontSize:"0.75rem",color:"#d1d5db"}}>Semana: {fmtPace(d.rawPace)}/km · {fmt(d.km)}km</p></div>;
+                        }}/>
+                        <Area type="monotone" dataKey="rollingPace" stroke={N.green} fill="url(#gPace)" strokeWidth={2.5} dot={false}/>
+                        <Line type="monotone" dataKey="rawPace" stroke={N.cyan} strokeWidth={1} dot={{r:2,fill:N.cyan}} strokeDasharray="3 3" opacity={0.5}/>
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                    <p style={{fontSize:"0.625rem",color:"#6b7280",marginTop:4}}>Eje invertido: arriba = más rápido</p>
+                  </div>
+                  <CoachTip color={N.green}
+                    title={(() => { const pt = paceTrend.filter(p=>p.rollingPace>0); if(pt.length<4) return "Datos insuficientes"; const recent = pt[pt.length-1].rollingPace; const prev = pt[Math.max(pt.length-8,0)].rollingPace; return recent < prev ? "Pace mejorando" : "Pace estable"; })()}
+                    explain={(() => { const pt = paceTrend.filter(p=>p.rollingPace>0); const latest = pt.length ? fmtPace(pt[pt.length-1].rollingPace) : "--"; return `Tu pace rolling (promedio 4 semanas) suaviza la variabilidad. Actual: ${latest}/km. Línea descendente = estás más rápido.`; })()}
+                    action={(() => { const pt = paceTrend.filter(p=>p.rollingPace>0); if(pt.length<2) return "Sigue acumulando datos."; const recent = pt[pt.length-1].rollingPace; return recent > 6 ? "Incluye 1 sesión de fartlek (8×1min rápido / 1min trote) para bajar el pace." : recent > 5.5 ? "Buen ritmo. Agrega 1 tempo run de 25min a pace ~5:20 para consolidar." : "Pace excelente. Mantén 80% fácil y 20% rápido para no estancarte."; })()}
+                  />
+                </div>
+              </Card>
+
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+                <Card className="p-5">
+                  <h3 style={{fontSize:"0.875rem",fontWeight:700,color:"#e5e7eb",marginBottom:12}}>Distribución por Distancia</h3>
+                  <ResponsiveContainer width="100%" height={220}>
+                    <BarChart data={distDist}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#ffffff08"/>
+                      <XAxis dataKey="name" tick={{fill:"#9ca3af",fontSize:11}}/>
+                      <YAxis tick={{fill:"#6b7280",fontSize:10}}/>
+                      <Tooltip content={<TT/>}/>
+                      <Bar dataKey="value" name="Runs" radius={[6,6,0,0]}>
+                        {distDist.map((d,i)=><Cell key={i} fill={d.color}/>)}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </Card>
+                <Card className="p-5">
+                  <h3 style={{fontSize:"0.875rem",fontWeight:700,color:"#e5e7eb",marginBottom:12}}>Zonas de Ritmo</h3>
+                  {(()=>{
+                    const zones=[
+                      {name:"Recovery (>6:30)",min:6.5,max:99,color:N.blue},
+                      {name:"Easy (6:00-6:30)",min:6,max:6.5,color:N.green},
+                      {name:"Tempo (5:30-6:00)",min:5.5,max:6,color:N.yellow},
+                      {name:"Threshold (5:00-5:30)",min:5,max:5.5,color:N.orange},
+                      {name:"Speed (<5:00)",min:0,max:5,color:N.red}
+                    ].map(z=>({...z,count:runs.filter(r=>r.p>=z.min&&r.p<z.max&&r.p>0).length}));
+                    const mx=Math.max(...zones.map(z=>z.count),1);
+                    return <div style={{display:"flex",flexDirection:"column",gap:12}}>{zones.map((z,i)=>(
+                      <div key={i}>
+                        <div style={{display:"flex",justifyContent:"space-between",fontSize:"0.6875rem",marginBottom:4}}><span style={{color:"#9ca3af"}}>{z.name}</span><span style={{color:"white",fontWeight:700}}>{z.count}</span></div>
+                        <div style={{height:10,background:"rgba(255,255,255,0.03)",borderRadius:9999,overflow:"hidden"}}><div style={{height:"100%",borderRadius:9999,width:`${z.count/mx*100}%`,backgroundColor:z.color,transition:"all 1s"}}/></div>
+                      </div>))}</div>;
+                  })()}
+                </Card>
+              </div>
+
+              <Card className="p-5" glow={N.blue}>
+                <h3 style={{fontSize:"0.875rem",fontWeight:700,color:"#e5e7eb",marginBottom:12}}>Distancia vs Pace (tamaño = watts)</h3>
+                <div className="coach-row" style={{display:"flex",gap:16,alignItems:"stretch"}}>
+                  <div style={{flex:1,minWidth:0}}>
+                    <ResponsiveContainer width="100%" height={250}>
+                      <ScatterChart>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff08"/>
+                        <XAxis type="number" dataKey="km" name="Distancia" unit="km" tick={{fill:"#6b7280",fontSize:10}}/>
+                        <YAxis type="number" dataKey="pace" name="Pace" reversed domain={[4.5,7.5]} tick={{fill:"#6b7280",fontSize:10}} tickFormatter={v=>fmtPace(v)}/>
+                        <ZAxis type="number" dataKey="watts" range={[30,200]} name="Watts"/>
+                        <Tooltip content={({active,payload})=>{
+                          if(!active||!payload?.length)return null;
+                          const d=payload[0].payload;
+                          return <div style={{background:"rgba(17,24,39,0.95)",border:"1px solid #374151",borderRadius:12,padding:12}}><p style={{fontSize:"0.75rem",color:"#06b6d4",fontWeight:700}}>{fmt(d.km)}km · {fmtPace(d.pace)}/km</p><p style={{fontSize:"0.625rem",color:"#9ca3af"}}>{d.watts}W · {d.hr}bpm</p></div>;
+                        }}/>
+                        <Scatter data={runs.filter(a=>a.p>0&&a.p<10&&a.w>0).map(a=>({km:a.km,pace:a.p,watts:a.w,hr:a.hr}))} fill={N.cyan} fillOpacity={0.7}/>
+                      </ScatterChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <CoachTip color={N.blue}
+                    title="Relación distancia-ritmo"
+                    explain="Cada punto es un run. Arriba-derecha = largos rápidos (ideal). Abajo-izquierda = cortos lentos. La nube te muestra tu rango óptimo de entrenamiento."
+                    action="Intenta que los runs largos (>10km) no bajen de pace 6:00. Para runs cortos (<5km), busca bajar de 5:30 con intervalos."
+                  />
+                </div>
+              </Card>
+            </div>
+          )}
+
+          {/* ═══════ FITNESS ═══════ */}
+          {tab==="fitness" && (
+            <div style={{display:"flex",flexDirection:"column",gap:20}}>
+              <Card className="p-5" glow={N.red}>
+                <h3 style={{fontSize:"0.875rem",fontWeight:700,color:"#e5e7eb",marginBottom:12}}>Distribución de Zonas Cardíacas</h3>
+                <div className="coach-row" style={{display:"flex",gap:16,alignItems:"stretch"}}>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:24}}>
+                      <ResponsiveContainer width="100%" height={220}>
+                        <PieChart>
+                          <Pie data={energySystem.filter(z=>z.value>0)} cx="50%" cy="50%" innerRadius={55} outerRadius={90} paddingAngle={3} dataKey="value">
+                            {energySystem.map((z,i)=><Cell key={i} fill={z.color}/>)}
+                          </Pie>
+                          <Tooltip formatter={v=>`${v}%`}/>
+                        </PieChart>
+                      </ResponsiveContainer>
+                      <div style={{display:"flex",flexDirection:"column",justifyContent:"center",gap:8}}>
+                        {energySystem.map((z,i)=>(
+                          <div key={i} style={{display:"flex",alignItems:"center",gap:12}}>
+                            <div style={{width:12,height:12,borderRadius:9999,backgroundColor:z.color,flexShrink:0}}/>
+                            <span style={{fontSize:"0.75rem",color:"#d1d5db",flex:1}}>{z.name}</span>
+                            <span style={{fontSize:"0.75rem",fontWeight:700,color:"white"}}>{z.value}%</span>
+                            <span style={{fontSize:"0.625rem",color:"#6b7280"}}>{fmtTime(z.seconds)}</span>
+                          </div>
+                        ))}
+                        <div style={{marginTop:8,paddingTop:8,borderTop:"1px solid rgba(255,255,255,0.05)"}}>
+                          <div style={{display:"flex",justifyContent:"space-between",fontSize:"0.75rem"}}><span style={{color:"#3b82f6"}}>Aeróbico (Z1-Z3)</span><span style={{fontWeight:700,color:"#3b82f6"}}>{aerobicPct}%</span></div>
+                          <div style={{display:"flex",justifyContent:"space-between",fontSize:"0.75rem",marginTop:4}}><span style={{color:"#ef4444"}}>Anaeróbico (Z4-Z5)</span><span style={{fontWeight:700,color:"#ef4444"}}>{100-aerobicPct}%</span></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <CoachTip color={N.red}
+                    title={aerobicPct >= 78 ? "Polarización óptima" : aerobicPct >= 65 ? "Más Z2 necesario" : "Demasiado intenso"}
+                    explain={`El modelo 80/20 dice que ~80% del tiempo debe ser aeróbico (Z1-Z3). Tu distribución actual: ${aerobicPct}% aeróbico / ${100-aerobicPct}% anaeróbico.`}
+                    action={aerobicPct >= 78 ? "Excelente balance. Mantén la mayoría de tus runs en Z2 con 1-2 sesiones intensas/semana." : aerobicPct >= 65 ? "Sustituye 1 sesión intensa por un run fácil largo en Z2. Tu base aeróbica lo necesita." : "Frena: corre más lento. 3 de cada 4 runs deben ser conversacionales (Z2)."}
+                  />
+                </div>
+              </Card>
+
+              <Card className="p-5">
+                <h3 style={{fontSize:"0.875rem",fontWeight:700,color:"#e5e7eb",marginBottom:12}}>FC Promedio por Semana</h3>
+                <div className="coach-row" style={{display:"flex",gap:16,alignItems:"stretch"}}>
+                  <div style={{flex:1,minWidth:0}}>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <AreaChart data={weeklyAgg.filter(w=>w.avgHr>0).slice(-16)}>
+                        <defs><linearGradient id="gHr" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={N.red} stopOpacity={0.3}/><stop offset="95%" stopColor={N.red} stopOpacity={0}/></linearGradient></defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff08"/>
+                        <XAxis dataKey="label" tick={{fill:"#6b7280",fontSize:10}}/>
+                        <YAxis domain={[140,185]} tick={{fill:"#6b7280",fontSize:10}}/>
+                        <Tooltip content={<TT/>}/>
+                        <Area type="monotone" dataKey="avgHr" name="FC Avg (bpm)" stroke={N.red} fill="url(#gHr)" strokeWidth={2}/>
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <CoachTip color={N.red}
+                    title={(() => { const hrData = weeklyAgg.filter(w=>w.avgHr>0).slice(-8); const avg = hrData.reduce((s,w)=>s+w.avgHr,0)/Math.max(hrData.length,1); return avg > 165 ? "FC promedio alta" : avg > 150 ? "FC en rango moderado" : "FC baja — buen control"; })()}
+                    explain="FC promedio semanal refleja la intensidad general. Si sube sin que suba el pace, puede indicar fatiga, calor o mala recuperación."
+                    action={(() => { const hrData = weeklyAgg.filter(w=>w.avgHr>0).slice(-8); const avg = hrData.reduce((s,w)=>s+w.avgHr,0)/Math.max(hrData.length,1); return avg > 165 ? "Reduce intensidad: más Z2. Si FC sigue alta, revisa descanso y nutrición." : "Buen rango. Monitorea si la FC sube a mismo pace — señal temprana de sobreentrenamiento."; })()}
+                  />
+                </div>
+              </Card>
+              <Card className="p-5">
+                <h3 style={{fontSize:"0.875rem",fontWeight:700,color:"#e5e7eb",marginBottom:12}}>Potencia Promedio por Semana</h3>
+                <div className="coach-row" style={{display:"flex",gap:16,alignItems:"stretch"}}>
+                  <div style={{flex:1,minWidth:0}}>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <AreaChart data={weeklyAgg.filter(w=>w.avgWatts>0).slice(-16)}>
+                        <defs><linearGradient id="gW" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={N.orange} stopOpacity={0.3}/><stop offset="95%" stopColor={N.orange} stopOpacity={0}/></linearGradient></defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff08"/>
+                        <XAxis dataKey="label" tick={{fill:"#6b7280",fontSize:10}}/>
+                        <YAxis domain={[180,250]} tick={{fill:"#6b7280",fontSize:10}}/>
+                        <Tooltip content={<TT/>}/>
+                        <Area type="monotone" dataKey="avgWatts" name="Watts Avg" stroke={N.orange} fill="url(#gW)" strokeWidth={2}/>
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <CoachTip color={N.orange}
+                    title="Tendencia de potencia"
+                    explain="Watts promedio semanal muestra tu fuerza aplicada al correr. Combinado con pace descendente, indica mejor economía de carrera."
+                    action="Mantén gym 2-3x/semana. Ejercicios clave: sentadillas, lunges y plancha para transferir fuerza al running."
+                  />
+                </div>
+              </Card>
+
+              <Card className="p-5" glow={N.pink}>
+                <h3 style={{fontSize:"0.875rem",fontWeight:700,color:"#e5e7eb",marginBottom:12}}>Estimación VO2max · Predicciones de Carrera</h3>
+                <div className="coach-row" style={{display:"flex",gap:16,alignItems:"stretch"}}>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:12}}>
+                      {[{dist:"5K",pred:"22:00",pace:"4:24/km"},{dist:"10K",pred:"48:00",pace:"4:48/km"},{dist:"Media Maratón",pred:"1h 49m",pace:"5:11/km"},{dist:"Maratón",pred:"3h 55m",pace:"5:34/km"}].map((p,i)=>(
+                        <div key={i} style={{background:"rgba(255,255,255,0.02)",borderRadius:12,padding:12,textAlign:"center",border:"1px solid rgba(255,255,255,0.03)"}}>
+                          <p style={{fontSize:"0.625rem",color:"#6b7280",textTransform:"uppercase"}}>{p.dist}</p>
+                          <p style={{fontSize:"1.125rem",fontWeight:900,color:"white",marginTop:4}}>{p.pred}</p>
+                          <p style={{fontSize:"0.625rem",color:N.pink}}>{p.pace}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <p style={{fontSize:"0.625rem",color:"#6b7280",marginTop:12}}>Basado en VO2max estimado de {vo2max} ml/kg/min (fórmula Jack Daniels)</p>
+                  </div>
+                  <CoachTip color={N.pink}
+                    title={`VO2max: ${vo2max} ml/kg/min`}
+                    explain={`Un VO2max de ${vo2max} te coloca en categoría "Bueno" para tu edad. Cada punto de mejora puede bajar ~15-20s en tu 10K. Se mejora con intervalos y consistencia.`}
+                    action="Para subir VO2max: 1 sesión semanal de intervalos VO2max (5×1000m a pace 4:40 con 2min recuperación). El resto fácil."
+                  />
+                </div>
+              </Card>
+            </div>
+          )}
+
+          {/* ═══════ GYM & MÁS ═══════ */}
+          {tab==="other" && (
+            <div style={{display:"flex",flexDirection:"column",gap:20}}>
+              <Card className="p-5" glow={N.orange}>
+                <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:16}}>
+                  <div style={{padding:8,borderRadius:12,background:"rgba(249,115,22,0.15)"}}><Icon type="dumbbell" size={20} color="#fb923c"/></div>
+                  <div><h3 style={{fontSize:"1.125rem",fontWeight:900,color:"white"}}>Entrenamiento de Fuerza</h3><p style={{fontSize:"0.625rem",color:"#9ca3af"}}>{weights.length} sesiones · Jefit</p></div>
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:12,marginBottom:20}}>
+                  <div style={{background:"rgba(255,255,255,0.02)",borderRadius:12,padding:12,textAlign:"center"}}><p style={{fontSize:"0.625rem",color:"#6b7280"}}>Sesiones</p><p style={{fontSize:"1.25rem",fontWeight:900,color:"#fb923c"}}>{weights.length}</p></div>
+                  <div style={{background:"rgba(255,255,255,0.02)",borderRadius:12,padding:12,textAlign:"center"}}><p style={{fontSize:"0.625rem",color:"#6b7280"}}>Tiempo Total</p><p style={{fontSize:"1.25rem",fontWeight:900,color:"#fb923c"}}>{fmtTime(weights.reduce((s,a)=>s+a.s,0))}</p></div>
+                  <div style={{background:"rgba(255,255,255,0.02)",borderRadius:12,padding:12,textAlign:"center"}}><p style={{fontSize:"0.625rem",color:"#6b7280"}}>Prom/Sesión</p><p style={{fontSize:"1.25rem",fontWeight:900,color:"#fb923c"}}>{weights.length?fmtTime(Math.round(weights.reduce((s,a)=>s+a.s,0)/weights.length)):"\u2014"}</p></div>
+                  <div style={{background:"rgba(255,255,255,0.02)",borderRadius:12,padding:12,textAlign:"center"}}><p style={{fontSize:"0.625rem",color:"#6b7280"}}>Ratio Run:Gym</p><p style={{fontSize:"1.25rem",fontWeight:900,color:"#fb923c"}}>{runs.length}:{weights.length}</p></div>
+                </div>
+                {(()=>{
+                  const gm={};
+                  weights.forEach(a=>{const k=getMonthKey(a.d);if(!gm[k])gm[k]={m:k,sessions:0,time:0};gm[k].sessions++;gm[k].time+=a.s;});
+                  const d=Object.values(gm).map(v=>({...v,label:(()=>{const[y,mo]=v.m.split("-");return`${MONTHS[parseInt(mo)-1]} ${y.slice(2)}`;})()})).sort((a,b)=>a.m.localeCompare(b.m));
+                  return <ResponsiveContainer width="100%" height={180}><BarChart data={d}><CartesianGrid strokeDasharray="3 3" stroke="#ffffff08"/><XAxis dataKey="label" tick={{fill:"#6b7280",fontSize:10}}/><YAxis tick={{fill:"#6b7280",fontSize:10}}/><Tooltip content={<TT/>}/><Bar dataKey="sessions" name="Sesiones" fill={N.orange} radius={[4,4,0,0]} fillOpacity={0.7}/></BarChart></ResponsiveContainer>;
+                })()}
+              </Card>
+              {rides.length>0 && (
+                <Card className="p-5" glow={N.green}>
+                  <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12}}>
+                    <div style={{padding:8,borderRadius:12,background:"rgba(16,185,129,0.15)"}}><Icon type="bike" size={20} color="#34d399"/></div>
+                    <h3 style={{fontSize:"1.125rem",fontWeight:900,color:"white"}}>Ciclismo</h3>
+                  </div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>
+                    <div style={{background:"rgba(255,255,255,0.02)",borderRadius:12,padding:12,textAlign:"center"}}><p style={{fontSize:"0.625rem",color:"#6b7280"}}>Distancia</p><p style={{fontSize:"1.25rem",fontWeight:900,color:"#34d399"}}>{fmt(rides.reduce((s,a)=>s+a.km,0))} km</p></div>
+                    <div style={{background:"rgba(255,255,255,0.02)",borderRadius:12,padding:12,textAlign:"center"}}><p style={{fontSize:"0.625rem",color:"#6b7280"}}>Tiempo</p><p style={{fontSize:"1.25rem",fontWeight:900,color:"#34d399"}}>{fmtTime(rides.reduce((s,a)=>s+a.s,0))}</p></div>
+                    <div style={{background:"rgba(255,255,255,0.02)",borderRadius:12,padding:12,textAlign:"center"}}><p style={{fontSize:"0.625rem",color:"#6b7280"}}>Salidas</p><p style={{fontSize:"1.25rem",fontWeight:900,color:"#34d399"}}>{rides.length}</p></div>
+                  </div>
+                </Card>
+              )}
+            </div>
+          )}
+
+          {/* ═══════ CONSISTENCY ═══════ */}
+          {tab==="consistency" && (
+            <div style={{display:"flex",flexDirection:"column",gap:20}}>
+              <Card className="p-5" glow={N.green}>
+                <h3 style={{fontSize:"0.875rem",fontWeight:700,color:"#e5e7eb",marginBottom:16,display:"flex",alignItems:"center",gap:8}}><Icon type="calendar" size={16} color={N.green}/> Calendario 2026</h3>
+                <HeatmapGrid/>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginTop:12}}><span style={{fontSize:"0.625rem",color:"#6b7280"}}>Menos</span>{[0,1,2,3].map(i=><div key={i} style={{width:11,height:11,borderRadius:2,backgroundColor:i===0?"#111827":i===1?"#064e3b":i===2?"#059669":"#10b981"}}/>)}<span style={{fontSize:"0.625rem",color:"#6b7280"}}>Más</span></div>
+              </Card>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:16}}>
+                <Card className="p-5" glow={N.orange} style={{textAlign:"center"}}><Icon type="flame" size={28} color={N.orange}/><p style={{fontSize:"1.875rem",fontWeight:900,color:"white",marginTop:8}}>{streaks.max}</p><p style={{fontSize:"0.625rem",color:"#9ca3af"}}>Mejor racha (días)</p></Card>
+                <Card className="p-5" glow={N.cyan} style={{textAlign:"center"}}><Icon type="zap" size={28} color={N.cyan}/><p style={{fontSize:"1.875rem",fontWeight:900,color:"white",marginTop:8}}>{streaks.current}</p><p style={{fontSize:"0.625rem",color:"#9ca3af"}}>Racha actual</p></Card>
+                <Card className="p-5" glow={N.purple} style={{textAlign:"center"}}><Icon type="activity" size={28} color={N.purple}/><p style={{fontSize:"1.875rem",fontWeight:900,color:"white",marginTop:8}}>{Object.keys(heatmap).length}</p><p style={{fontSize:"0.625rem",color:"#9ca3af"}}>Días activos</p></Card>
+              </div>
+              <Card className="p-5">
+                <h3 style={{fontSize:"0.875rem",fontWeight:700,color:"#e5e7eb",marginBottom:12}}>Runs por Día de la Semana</h3>
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={dayDist}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#ffffff08"/>
+                    <XAxis dataKey="day" tick={{fill:"#9ca3af",fontSize:11}}/>
+                    <YAxis tick={{fill:"#6b7280",fontSize:10}}/>
+                    <Tooltip content={<TT/>}/>
+                    <Bar dataKey="count" name="Runs" fill={N.purple} radius={[6,6,0,0]} fillOpacity={0.8}>
+                      {dayDist.map((d,i)=>{const mx=Math.max(...dayDist.map(x=>x.count));return <Cell key={i} fill={d.count===mx?N.green:N.purple}/>;})}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </Card>
+            </div>
+          )}
+
+          {/* ═══════ SHOES ═══════ */}
+          {tab==="shoes" && (()=>{
+            // Calculate projection for each shoe
+            const shoeProjections = ATHLETE.shoes.map(shoe => {
+              const firstUse = new Date(shoe.firstUse);
+              const lastUse = new Date(shoe.lastUse);
+              const weeksUsed = Math.max((lastUse - firstUse) / (7*864e5), 1);
+              const kmPerWeek = shoe.km / weeksUsed;
+              const remaining = shoe.maxKm - shoe.km;
+              const weeksToReplace = remaining / kmPerWeek;
+              const replaceDate = new Date(now.getTime() + weeksToReplace * 7 * 864e5);
+              const replaceDateStr = `${replaceDate.getDate()} ${MONTHS[replaceDate.getMonth()]} ${replaceDate.getFullYear()}`;
+              const daysToReplace = Math.round(weeksToReplace * 7);
+              const pct = Math.min(shoe.km/shoe.maxKm*100,100);
+              const st = pct>85?"danger":pct>65?"warning":"good";
+              const stc = {good:N.green,warning:N.yellow,danger:N.red}[st];
+              const stl = {good:"Buen estado",warning:"Uso moderado",danger:"Reemplazo pronto"}[st];
+              // Build projection curve data (monthly)
+              const projData = [];
+              const monthsAhead = Math.ceil(weeksToReplace / 4.33) + 1;
+              for (let m = 0; m <= Math.min(monthsAhead, 12); m++) {
+                const projKm = Math.min(shoe.km + kmPerWeek * m * 4.33, shoe.maxKm * 1.05);
+                const d = new Date(now.getTime() + m * 30 * 864e5);
+                projData.push({ label: `${MONTHS[d.getMonth()]} ${String(d.getFullYear()).slice(2)}`, km: Math.round(projKm), limit: shoe.maxKm });
+              }
+              return { ...shoe, pct, st, stc, stl, kmPerWeek: fmt(kmPerWeek,1), weeksToReplace: Math.round(weeksToReplace), daysToReplace, replaceDateStr, projData };
+            });
+            return (
+            <div style={{display:"flex",flexDirection:"column",gap:20}}>
+              <Card className="p-5" glow={N.cyan}>
+                <h3 style={{fontSize:"1.125rem",fontWeight:900,color:"white",marginBottom:4,display:"flex",alignItems:"center",gap:8}}><Icon type="foot" size={18} color={N.cyan}/> Tracking de Tenis</h3>
+                <p style={{fontSize:"0.625rem",color:"#9ca3af",marginBottom:20}}>Vida útil ASICS Nimbus: 700 km estimado · Proyección basada en ritmo de uso actual</p>
+                <div style={{display:"flex",flexDirection:"column",gap:20}}>
+                  {shoeProjections.map((shoe,i)=>(
+                    <div key={i} style={{background:"rgba(255,255,255,0.02)",borderRadius:16,padding:20,border:"1px solid rgba(255,255,255,0.03)"}}>
+                      <div style={{display:"flex",alignItems:"flex-start",gap:16}}>
+                        <div style={{fontSize:"2.5rem"}}>👟</div>
+                        <div style={{flex:1}}>
+                          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
+                            <h4 style={{fontSize:"0.875rem",fontWeight:700,color:"white"}}>{shoe.name}</h4>
+                            <span style={{fontSize:"0.625rem",padding:"4px 8px",borderRadius:9999,fontWeight:700,color:shoe.stc,backgroundColor:`${shoe.stc}15`,border:`1px solid ${shoe.stc}30`}}>{shoe.stl}</span>
+                          </div>
+                          <p style={{fontSize:"0.75rem",color:"#9ca3af",marginBottom:12}}>{shoe.km} km / {shoe.maxKm} km</p>
+                          <div style={{height:12,background:"rgba(255,255,255,0.03)",borderRadius:9999,overflow:"hidden"}}>
+                            <div style={{height:"100%",borderRadius:9999,width:`${shoe.pct}%`,background:`linear-gradient(90deg,${shoe.color},${shoe.stc})`,transition:"all 1s"}}/>
+                          </div>
+                          <div style={{display:"flex",justifyContent:"space-between",marginTop:8}}>
+                            <span style={{fontSize:"0.625rem",color:"#4b5563"}}>0 km</span>
+                            <span style={{fontSize:"0.625rem",fontWeight:700,color:shoe.stc}}>{fmt(shoe.pct,0)}%</span>
+                            <span style={{fontSize:"0.625rem",color:"#4b5563"}}>{shoe.maxKm} km</span>
+                          </div>
+
+                          {/* Projection info */}
+                          <div style={{marginTop:16,padding:12,background:"rgba(255,255,255,0.03)",borderRadius:12,border:"1px solid rgba(255,255,255,0.05)"}}>
+                            <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
+                              <Icon type="calendar" size={12} color={shoe.color}/>
+                              <span style={{fontSize:"0.75rem",fontWeight:700,color:"white"}}>Proyección de Reemplazo</span>
+                            </div>
+                            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+                              <div style={{textAlign:"center"}}>
+                                <p style={{fontSize:"0.625rem",color:"#6b7280"}}>Uso semanal</p>
+                                <p style={{fontSize:"1rem",fontWeight:900,color:shoe.color}}>{shoe.kmPerWeek} km</p>
+                              </div>
+                              <div style={{textAlign:"center"}}>
+                                <p style={{fontSize:"0.625rem",color:"#6b7280"}}>Días restantes</p>
+                                <p style={{fontSize:"1rem",fontWeight:900,color:shoe.daysToReplace<60?N.red:shoe.daysToReplace<120?N.yellow:N.green}}>{shoe.daysToReplace}</p>
+                              </div>
+                              <div style={{textAlign:"center"}}>
+                                <p style={{fontSize:"0.625rem",color:"#6b7280"}}>Cambiar para</p>
+                                <p style={{fontSize:"0.875rem",fontWeight:700,color:"white"}}>{shoe.replaceDateStr}</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+
+              {/* Projection Chart */}
+              <Card className="p-5" glow={N.purple}>
+                <h3 style={{fontSize:"0.875rem",fontWeight:700,color:"#e5e7eb",marginBottom:12}}>Proyección de Desgaste</h3>
+                <div className="coach-row" style={{display:"flex",gap:16,alignItems:"stretch"}}>
+                  <div style={{flex:1,minWidth:0}}>
+                    <ResponsiveContainer width="100%" height={250}>
+                      <ComposedChart data={(()=>{
+                        const maxLen = Math.max(...shoeProjections.map(s=>s.projData.length));
+                        const merged = [];
+                        for(let j=0;j<maxLen;j++){
+                          const entry = { label: shoeProjections[0].projData[j]?.label || "" };
+                          shoeProjections.forEach((s,si)=>{
+                            if(s.projData[j]) { entry[`shoe${si}`] = s.projData[j].km; }
+                          });
+                          entry.limit = 700;
+                          merged.push(entry);
+                        }
+                        return merged;
+                      })()}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff08"/>
+                        <XAxis dataKey="label" tick={{fill:"#6b7280",fontSize:10}}/>
+                        <YAxis tick={{fill:"#6b7280",fontSize:10}} domain={[0,750]}/>
+                        <Tooltip content={({active,payload,label})=>{
+                          if(!active||!payload?.length)return null;
+                          return <div style={{background:"rgba(17,24,39,0.95)",border:"1px solid #374151",borderRadius:12,padding:12}}>
+                            <p style={{fontSize:"0.625rem",color:"#9ca3af",marginBottom:4}}>{label}</p>
+                            {payload.filter(p=>p.dataKey!=="limit").map((p,i)=><p key={i} style={{fontSize:"0.75rem",fontWeight:600,color:p.stroke||p.color}}>{shoeProjections[p.dataKey.replace("shoe","")]?.name.replace("ASICS Nimbus ","")}: {p.value} km</p>)}
+                          </div>;
+                        }}/>
+                        <Line type="monotone" dataKey="limit" name="Límite 700km" stroke="#ef4444" strokeWidth={2} strokeDasharray="8 4" dot={false} opacity={0.6}/>
+                        {shoeProjections.map((s,si)=>(
+                          <Line key={si} type="monotone" dataKey={`shoe${si}`} name={s.name.replace("ASICS Nimbus ","")} stroke={s.color} strokeWidth={2.5} dot={{r:3,fill:s.color}}/>
+                        ))}
+                        <Legend formatter={v=><span style={{color:"#9ca3af",fontSize:"0.625rem"}}>{v}</span>}/>
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                    <p style={{fontSize:"0.625rem",color:"#6b7280",marginTop:4}}>Línea roja punteada = límite de vida útil (700 km)</p>
+                  </div>
+                  <CoachTip color={N.purple}
+                    title={(() => { const soonest = shoeProjections.reduce((a,b) => a.daysToReplace < b.daysToReplace ? a : b); return soonest.daysToReplace < 60 ? "Reemplazo inminente" : soonest.daysToReplace < 120 ? "Planifica compra" : "Tenis en buen estado"; })()}
+                    explain={(() => { const soonest = shoeProjections.reduce((a,b) => a.daysToReplace < b.daysToReplace ? a : b); return `"${soonest.name.replace("ASICS Nimbus ","")}" llega a 700km en ~${soonest.daysToReplace} días (${soonest.replaceDateStr}). Correr con tenis desgastados aumenta riesgo de lesiones.`; })()}
+                    action={(() => { const soonest = shoeProjections.reduce((a,b) => a.daysToReplace < b.daysToReplace ? a : b); return soonest.daysToReplace < 90 ? `Compra reemplazo ya. Rota con los actuales las últimas semanas para adaptarte.` : `Sin prisa. Revisa el estado de la suela cada 100km y monitorea molestias.`; })()}
+                  />
+                </div>
+              </Card>
+
+              {/* Comparison bar chart */}
+              <Card className="p-5">
+                <h3 style={{fontSize:"0.875rem",fontWeight:700,color:"#e5e7eb",marginBottom:12}}>Comparación de Uso</h3>
+                <ResponsiveContainer width="100%" height={140}>
+                  <BarChart data={ATHLETE.shoes.map(s=>({name:s.name.replace("ASICS Nimbus ",""),km:s.km,rest:s.maxKm-s.km}))} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" stroke="#ffffff08"/>
+                    <XAxis type="number" tick={{fill:"#6b7280",fontSize:10}}/>
+                    <YAxis dataKey="name" type="category" tick={{fill:"#9ca3af",fontSize:11}} width={100}/>
+                    <Tooltip content={<TT/>}/>
+                    <Bar dataKey="km" name="Km Usados" stackId="a" fill={N.cyan}/>
+                    <Bar dataKey="rest" name="Km Restantes" stackId="a" fill="#1f293780" radius={[0,4,4,0]}/>
+                  </BarChart>
+                </ResponsiveContainer>
+              </Card>
+            </div>
+            );
+          })()}
+
+          {/* FOOTER */}
+          <div style={{marginTop:40,textAlign:"center",paddingBottom:16}}>
+            <p style={{fontSize:"0.625rem",color:"#374151"}}>Strava Analytics Dashboard · {ATHLETE.name} · Generado {new Date().toLocaleDateString("es")}</p>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.render(<StravaDashboard/>, document.getElementById("root"));
+  </script>
+</body>
+</html>
