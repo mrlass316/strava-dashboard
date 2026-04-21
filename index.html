@@ -1030,33 +1030,78 @@
               return {emoji:"🏃", note:`Run de ${fmt(a.km)}km a ${fmtPace(a.p)}/km${a.hr>0?` con FC ${Math.round(a.hr)} bpm (${zName})`:""}.`, tip:"Mantén la variedad de estímulos entre sesiones."};
             };
 
+            // Day-of-week context (0=Mon..6=Sun)
+            const dayIdx = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Mon=0, Tue=1, ..., Sun=6
+            const daysElapsed = dayIdx + 1;
+            const daysRemaining = 7 - daysElapsed;
+            const isEarlyWeek = dayIdx <= 2; // Mon-Wed
+            const isMidWeek = dayIdx >= 3 && dayIdx <= 4; // Thu-Fri
+            const isLateWeek = dayIdx >= 5; // Sat-Sun
+            const dayNameToday = DAYS_ES[now.getDay()];
+
+            // Project weekly volume based on current pace
+            const kmPerDayRate = daysElapsed > 0 ? wkKm / daysElapsed : 0;
+            const projectedKm = wkKm + (kmPerDayRate * daysRemaining);
+
+            // Average weekly km from previous 4 weeks for context
+            const prev4w = [];
+            for (let wi = 1; wi <= 4; wi++) {
+              const ws = new Date(weekStart); ws.setDate(weekStart.getDate() - wi*7);
+              const we = new Date(ws); we.setDate(ws.getDate() + 6);
+              const wRuns = data.filter(a => { const ad = new Date(a.d); return a.t==="Run" && ad >= ws && ad <= we; });
+              prev4w.push(wRuns.reduce((s,a) => s+a.km, 0));
+            }
+            const avgWeeklyKm = prev4w.length ? prev4w.reduce((s,v)=>s+v,0)/prev4w.length : 0;
+
             const getWeekCoachSummary = () => {
               const notes = [];
-              // Volume analysis
-              if (wkKm > 50) notes.push({icon:"🔥",title:"Volumen alto",text:`${fmt(wkKm)}km esta semana. Cuidado con la sobrecarga. La próxima semana reduce ~15%.`});
-              else if (wkKm > 35) notes.push({icon:"💪",title:"Buen volumen",text:`${fmt(wkKm)}km es un volumen sólido. Puedes mantenerlo o subir 5-10% la próxima semana.`});
-              else if (wkKm > 20) notes.push({icon:"📊",title:"Volumen moderado",text:`${fmt(wkKm)}km. Hay espacio para crecer. Agrega 1 sesión corta de 5-6km.`});
-              else notes.push({icon:"🌱",title:"Semana ligera",text:`${fmt(wkKm)}km. ${wkRuns.length === 0 ? "Sin carreras esta semana." : "Fue una semana de descanso o baja actividad."}`});
 
-              // Intensity mix
+              // Volume analysis — context-aware by day
+              if (isEarlyWeek) {
+                // Mon-Wed: project forward, don't judge final volume
+                if (wkKm > 30) notes.push({icon:"🔥",title:`Arranque fuerte: ${fmt(wkKm)}km`,text:`Llevas ${fmt(wkKm)}km en solo ${daysElapsed} días (${dayNameToday}). Proyección: ~${fmt(projectedKm)}km. ${projectedKm > 50 ? "Ojo con la sobrecarga — modera los próximos días." : "Vas a buen ritmo."}`});
+                else if (wkKm > 15) notes.push({icon:"💪",title:`Buen inicio: ${fmt(wkKm)}km`,text:`En ${daysElapsed} días llevas ${fmt(wkKm)}km. Proyección: ~${fmt(projectedKm)}km. ${avgWeeklyKm > 0 ? `Tu promedio semanal es ~${fmt(avgWeeklyKm)}km.` : ""} Vas encaminado.`});
+                else if (wkKm > 0) notes.push({icon:"📊",title:`${fmt(wkKm)}km hasta hoy`,text:`Es ${dayNameToday}, aún quedan ${daysRemaining} días. ${avgWeeklyKm > 0 ? `Para alcanzar tu promedio de ~${fmt(avgWeeklyKm)}km necesitas ~${fmt(Math.max(avgWeeklyKm - wkKm, 0))}km más.` : "Hay tiempo de sobra para sumar volumen."}`});
+                else notes.push({icon:"🌱",title:"Semana arrancando",text:`Es ${dayNameToday} y aún no hay carreras. ${daysRemaining} días por delante. ${avgWeeklyKm > 0 ? `Tu promedio es ~${fmt(avgWeeklyKm)}km/semana — hoy es buen día para empezar.` : "Buen momento para planificar tus sesiones."}`});
+              } else if (isMidWeek) {
+                // Thu-Fri: evaluate progress with projection
+                if (wkKm > 35) notes.push({icon:"🔥",title:`Semana productiva: ${fmt(wkKm)}km`,text:`Llevas ${fmt(wkKm)}km al ${dayNameToday}. ${daysRemaining > 0 ? `Con ${daysRemaining} días restantes, proyectas ~${fmt(projectedKm)}km.` : ""} ${wkKm > avgWeeklyKm ? "Ya superaste tu promedio semanal." : "Cerca de tu promedio."}`});
+                else if (wkKm > 20) notes.push({icon:"💪",title:`En camino: ${fmt(wkKm)}km`,text:`${dayNameToday} con ${fmt(wkKm)}km. ${avgWeeklyKm > 0 ? `Faltan ~${fmt(Math.max(avgWeeklyKm - wkKm, 0))}km para tu promedio de ${fmt(avgWeeklyKm)}km.` : `Quedan ${daysRemaining} días para sumar.`} Un long run el fin de semana completaría bien.`});
+                else notes.push({icon:"📊",title:`Semana baja: ${fmt(wkKm)}km`,text:`Es ${dayNameToday} y llevas ${fmt(wkKm)}km. ${daysRemaining > 0 ? `Aprovecha el fin de semana: un long run de 12-15km compensaría.` : ""}`});
+              } else {
+                // Sat-Sun: near-final summary
+                if (wkKm > 45) notes.push({icon:"🏆",title:`Semana excepcional: ${fmt(wkKm)}km`,text:`Gran volumen. ${daysRemaining > 0 ? `Si falta el domingo, hazlo suave o descansa.` : "Cierre completo."} La próxima semana considera descargar.`});
+                else if (wkKm > 30) notes.push({icon:"💪",title:`Buena semana: ${fmt(wkKm)}km`,text:`Volumen sólido. ${avgWeeklyKm > 0 && wkKm >= avgWeeklyKm ? "Alcanzaste o superaste tu promedio." : "Consistente con tu ritmo habitual."} ${daysRemaining > 0 ? "Si corres mañana, hazlo fácil para cerrar bien." : ""}`});
+                else if (wkKm > 15) notes.push({icon:"📊",title:`Semana moderada: ${fmt(wkKm)}km`,text:`Volumen por debajo de lo habitual${avgWeeklyKm > 0 ? ` (promedio: ${fmt(avgWeeklyKm)}km)` : ""}. ${daysRemaining > 0 ? "Un run largo mañana sumaría." : "Puede ser semana de recuperación — está bien."}`});
+                else notes.push({icon:"🌱",title:`Semana ligera: ${fmt(wkKm)}km`,text:`Poco volumen${avgWeeklyKm > 0 ? ` vs tu promedio de ${fmt(avgWeeklyKm)}km` : ""}. ${wkRuns.length === 0 ? "Semana de descanso total." : "Fue una semana de recuperación — tu cuerpo lo agradece."}`});
+              }
+
+              // Intensity mix — only evaluate if enough runs to judge
               const easyRuns = wkRuns.filter(a => a.p >= 5.8 || (a.hr > 0 && a.hr < 158));
               const hardRuns = wkRuns.filter(a => a.p < 5.6 && a.p > 0);
               const ratio = wkRuns.length > 0 ? Math.round(easyRuns.length / wkRuns.length * 100) : 0;
               if (wkRuns.length >= 3) {
-                if (ratio >= 70) notes.push({icon:"✅",title:"Polarización correcta",text:`${ratio}% de tus runs fueron fáciles. La regla 80/20 protege de lesiones.`});
-                else notes.push({icon:"⚠️",title:"Mucha intensidad",text:`Solo ${ratio}% de runs fáciles. Sustituye 1 sesión intensa por un run en Z2.`});
+                if (ratio >= 70) notes.push({icon:"✅",title:"Polarización correcta",text:`${ratio}% de tus runs son fáciles. Excelente distribución 80/20.`});
+                else notes.push({icon:"⚠️",title:"Mucha intensidad",text:`Solo ${ratio}% de runs fáciles. ${isEarlyWeek ? "Aún puedes equilibrar con runs en Z2 el resto de la semana." : "Intenta más Z2 la próxima semana."}`});
+              } else if (wkRuns.length > 0 && hardRuns.length === wkRuns.length) {
+                notes.push({icon:"⚠️",title:"Todas las sesiones intensas",text:`${wkRuns.length} run(s) y ${wkRuns.length === hardRuns.length ? "todos" : "la mayoría"} fueron rápidos. ${isEarlyWeek ? "Balancea con runs fáciles los próximos días." : "Agrega variedad la próxima semana."}`});
               }
 
-              // Strength training
+              // Strength training — aware of remaining days
               if (wkGym.length >= 2) notes.push({icon:"🏋️",title:`${wkGym.length} sesiones de gym`,text:"Excelente complemento. La fuerza previene lesiones y mejora economía de carrera."});
-              else if (wkGym.length === 1) notes.push({icon:"💡",title:"1 sesión de gym",text:"Intenta llegar a 2-3 sesiones. Fuerza + running = combinación ganadora."});
-              else if (wkRuns.length > 0) notes.push({icon:"🏋️",title:"Sin gym esta semana",text:"Agrega 2 sesiones de fuerza. Sentadillas, lunges y plancha son clave."});
+              else if (wkGym.length === 1) notes.push({icon:"💡",title:"1 sesión de gym",text:`${daysRemaining >= 2 ? "Tienes tiempo de agregar 1-2 sesiones más esta semana." : "Intenta 2-3 sesiones la próxima semana."} Fuerza + running = combo ganador.`});
+              else if (daysElapsed >= 3) notes.push({icon:"🏋️",title:"Sin gym aún",text:`${daysRemaining >= 2 ? "Aún puedes meter 1-2 sesiones antes de que termine la semana." : "Planifica 2-3 sesiones de fuerza la próxima semana."} Sentadillas, lunges y plancha son clave.`});
 
-              // Week vs previous week
-              if (pwKm > 0) {
-                if (kmDiff > 15) notes.push({icon:"📈",title:`+${fmt(kmDiff,0)}% vs semana anterior`,text:`Subiste de ${fmt(pwKm)}km a ${fmt(wkKm)}km. Cuidado con subir más del 10% semanal.`});
-                else if (kmDiff < -15) notes.push({icon:"📉",title:`${fmt(kmDiff,0)}% vs semana anterior`,text:`Bajaste de ${fmt(pwKm)}km a ${fmt(wkKm)}km. ${kmDiff < -30 ? "Fue descanso planificado?" : "Ligera reducción — puede ser beneficioso."}`});
-                else notes.push({icon:"➡️",title:"Volumen estable",text:`Similar a la semana pasada (${fmt(pwKm)}km → ${fmt(wkKm)}km). Consistencia es clave.`});
+              // Week vs previous week — only compare when week is >50% done
+              if (pwKm > 0 && dayIdx >= 3) {
+                // Compare with actual, but note the week isn't done if Sat/Sun remain
+                const pctOfPrev = wkKm / pwKm * 100;
+                if (pctOfPrev > 115) notes.push({icon:"📈",title:`+${fmt(pctOfPrev-100,0)}% vs semana anterior`,text:`${fmt(wkKm)}km vs ${fmt(pwKm)}km la semana pasada. ${isLateWeek ? "Cuidado con subir más del 10% semanal." : "Vas adelante — modera si lo necesitas."}`});
+                else if (pctOfPrev < 75) notes.push({icon:"📉",title:`${fmt(pctOfPrev-100,0)}% vs semana anterior`,text:`${fmt(wkKm)}km vs ${fmt(pwKm)}km. ${daysRemaining > 0 ? `Aún quedan ${daysRemaining} días para acercarte.` : "Semana más suave — puede ser beneficioso."}`});
+                else notes.push({icon:"➡️",title:"Volumen similar a la semana pasada",text:`${fmt(wkKm)}km vs ${fmt(pwKm)}km. Consistencia es clave para progresar.`});
+              } else if (pwKm > 0 && isEarlyWeek) {
+                // Early week: just give context, don't compare
+                notes.push({icon:"📊",title:`Referencia: ${fmt(pwKm)}km la semana pasada`,text:`Tu promedio semanal es ~${fmt(avgWeeklyKm)}km. Vas por buen camino con ${fmt(wkKm)}km en ${daysElapsed} día(s).`});
               }
 
               return notes;
@@ -1064,17 +1109,34 @@
 
             const getNextWeekRec = () => {
               const recs = [];
-              if (wkKm > 45) {
-                recs.push("Semana de descarga: reduce a ~30-35km con intensidad baja.");
-                recs.push("Máximo 1 sesión de tempo suave. El resto fácil en Z2.");
-              } else if (wkKm > 30) {
-                recs.push(`Objetivo: ${fmt(wkKm * 1.05)}-${fmt(wkKm * 1.1)}km (subida gradual del 5-10%).`);
-                recs.push("Incluye 1 sesión de intervalos (6×800m) y 1 long run de 14-16km.");
+              // Use projected or average to recommend next week
+              const refKm = isLateWeek ? wkKm : avgWeeklyKm > 0 ? avgWeeklyKm : projectedKm;
+
+              if (isEarlyWeek) {
+                // Still this week to plan — focus on remaining days
+                recs.push(`Hoy es ${dayNameToday}. Quedan ${daysRemaining} días: planifica ${Math.min(daysRemaining, 3)} sesiones de running.`);
+                if (wkRuns.length === 0) recs.push("Prioridad: un run fácil de 6-8km hoy para activar la semana.");
+                else if (wkRuns.filter(a => a.p < 5.6 && a.p > 0).length > 0) recs.push("Ya hiciste intensidad. Los próximos runs deben ser fáciles en Z2.");
+                else recs.push("Buen momento para 1 sesión de tempo o fartlek de 20-25min a mitad de semana.");
+                if (wkGym.length === 0) recs.push("Mete 1-2 sesiones de fuerza antes del viernes.");
+                recs.push("Reserva el long run (12-16km) para el fin de semana.");
+              } else if (isMidWeek) {
+                // Rest of this week + preview next
+                if (daysRemaining > 0) recs.push(`Quedan ${daysRemaining} días: ${wkKm < avgWeeklyKm * 0.6 ? "un long run de 12-15km el sábado compensaría el volumen." : "cierra con 1-2 runs fáciles."}`);
+                const nextTarget = refKm > 45 ? `~${fmt(refKm * 0.85)}km (descarga)` : `${fmt(refKm * 1.05)}-${fmt(refKm * 1.1)}km (+5-10%)`;
+                recs.push(`Próxima semana objetivo: ${nextTarget}.`);
+                recs.push("Incluye variedad: 1 sesión de intervalos, 1 tempo, y el resto fácil.");
               } else {
-                recs.push(`Objetivo: ${fmt(Math.max(wkKm * 1.1, 25))}km con 3-4 sesiones de running.`);
-                recs.push("Prioriza consistencia: mejor 4 runs de 7km que 2 de 14km.");
+                // Weekend: full next-week plan
+                const nextTarget = wkKm > 45 ? `~${fmt(wkKm * 0.85)}km (semana de descarga)` : `${fmt(Math.max(wkKm * 1.05, avgWeeklyKm))}–${fmt(Math.max(wkKm * 1.1, avgWeeklyKm * 1.05))}km`;
+                recs.push(`Objetivo próxima semana: ${nextTarget}.`);
+                if (wkKm > 45) {
+                  recs.push("Máximo 1 sesión de tempo suave. El resto fácil en Z2.");
+                } else {
+                  recs.push("Plan: 1 intervalos (6×800m), 1 tempo (25min), 1-2 fáciles, 1 long run 14-16km.");
+                }
+                if (wkGym.length < 2) recs.push("Agrega 2 sesiones de fuerza (30-45min cada una).");
               }
-              if (wkGym.length < 2) recs.push("Agrega 2 sesiones de fuerza (30-45min cada una).");
               recs.push("Asegura 7-8 horas de sueño y buena hidratación.");
               return recs;
             };
@@ -1281,7 +1343,7 @@
                   <div style={{width:36,height:36,borderRadius:10,background:"linear-gradient(135deg,#3b82f6,#06b6d4)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>🧠</div>
                   <div>
                     <h3 style={{fontSize:"1rem",fontWeight:900,color:"white"}}>Análisis Semanal del Coach</h3>
-                    <p style={{fontSize:"0.65rem",color:"#6b7280"}}>Semana del {weekStart.getDate()} {MONTHS[weekStart.getMonth()]}{pwKm > 0 ? ` · vs ${fmt(pwKm)}km semana anterior` : ""}</p>
+                    <p style={{fontSize:"0.65rem",color:"#6b7280"}}>{dayNameToday} · Día {daysElapsed} de 7{daysRemaining > 0 ? ` · ${daysRemaining} días restantes` : " · Semana completa"}{avgWeeklyKm > 0 ? ` · Promedio: ${fmt(avgWeeklyKm)}km/sem` : ""}</p>
                   </div>
                 </div>
 
@@ -1302,7 +1364,7 @@
               <Card className="p-5" glow={N.green}>
                 <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
                   <div style={{width:36,height:36,borderRadius:10,background:"linear-gradient(135deg,#10b981,#06b6d4)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>🎯</div>
-                  <h3 style={{fontSize:"1rem",fontWeight:900,color:"white"}}>Recomendaciones para la Próxima Semana</h3>
+                  <h3 style={{fontSize:"1rem",fontWeight:900,color:"white"}}>{isEarlyWeek ? "Plan para el Resto de la Semana" : isMidWeek ? "Cierre de Semana + Próxima" : "Plan para la Próxima Semana"}</h3>
                 </div>
 
                 <div style={{display:"flex",flexDirection:"column",gap:8}}>
