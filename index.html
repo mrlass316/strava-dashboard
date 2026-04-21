@@ -554,7 +554,7 @@
       const [tab, setTab] = useState("daily");
       const [period, setPeriod] = useState("ytd");
 
-      const now = new Date("2026-04-21");
+      const now = new Date(); // Siempre usa la fecha real del sistema
 
       const data = useMemo(() => {
         return RAW.filter(a => {
