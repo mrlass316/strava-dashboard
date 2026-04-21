@@ -551,10 +551,10 @@
     // MAIN COMPONENT
     // ═══════════════════════════════════════════════════════════════
     function StravaDashboard() {
-      const [tab, setTab] = useState("overview");
+      const [tab, setTab] = useState("daily");
       const [period, setPeriod] = useState("ytd");
 
-      const now = new Date("2026-04-20");
+      const now = new Date("2026-04-21");
 
       const data = useMemo(() => {
         return RAW.filter(a => {
@@ -877,6 +877,7 @@
       };
 
       const tabs = [
+        {id:"daily",label:"Diario",icon:"calendar"},
         {id:"overview",label:"Overview",icon:"barChart"},
         {id:"coaching",label:"Coach",icon:"target"},
         {id:"running",label:"Running",icon:"foot"},
@@ -926,6 +927,397 @@
               </button>
             ))}
           </div>
+
+          {/* ═══════ DIARIO ═══════ */}
+          {tab==="daily" && (()=>{
+            const DAYS_ES = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
+            const DAYS_SHORT = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+
+            // Get start of current week (Monday)
+            const weekStart = new Date(now);
+            const dayOfWeek = weekStart.getDay();
+            weekStart.setDate(weekStart.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+            weekStart.setHours(0,0,0,0);
+            const weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekStart.getDate() + 6);
+
+            // Previous week
+            const prevWeekStart = new Date(weekStart);
+            prevWeekStart.setDate(weekStart.getDate() - 7);
+            const prevWeekEnd = new Date(weekStart);
+            prevWeekEnd.setDate(weekStart.getDate() - 1);
+
+            // All activities this week
+            const weekActivities = data.filter(a => {
+              const ad = new Date(a.d);
+              return ad >= weekStart && ad <= now;
+            }).sort((a,b) => b.d.localeCompare(a.d));
+
+            // Previous week activities
+            const prevWeekActivities = data.filter(a => {
+              const ad = new Date(a.d);
+              return ad >= prevWeekStart && ad < weekStart;
+            });
+
+            // Group by day
+            const dayMap = {};
+            for (let i = 0; i < 7; i++) {
+              const d = new Date(weekStart);
+              d.setDate(weekStart.getDate() + i);
+              const key = d.toISOString().split("T")[0];
+              dayMap[key] = { date: key, dayName: DAYS_ES[d.getDay()], dayShort: DAYS_SHORT[d.getDay()], activities: [], isPast: d <= now, isToday: d.toDateString() === now.toDateString() };
+            }
+            weekActivities.forEach(a => { if (dayMap[a.d]) dayMap[a.d].activities.push(a); });
+            const weekDays = Object.values(dayMap);
+
+            // Yesterday's activities
+            const yesterday = new Date(now);
+            yesterday.setDate(now.getDate() - 1);
+            const yesterdayStr = yesterday.toISOString().split("T")[0];
+            const todayStr = now.toISOString().split("T")[0];
+            // Use most recent day with activities
+            const recentDay = weekDays.filter(d => d.activities.length > 0).sort((a,b) => b.date.localeCompare(a.date))[0];
+            const featuredActivities = recentDay ? recentDay.activities : [];
+            const featuredDate = recentDay ? recentDay.date : todayStr;
+            const featuredDayName = recentDay ? recentDay.dayName : "";
+
+            // Week stats
+            const wkRuns = weekActivities.filter(a => a.t === "Run");
+            const wkGym = weekActivities.filter(a => a.t === "WeightTraining");
+            const wkKm = wkRuns.reduce((s,a) => s + a.km, 0);
+            const wkTime = weekActivities.reduce((s,a) => s + a.s, 0);
+            const wkCal = weekActivities.reduce((s,a) => s + (a.cal||0), 0);
+            const wkAvgPace = wkRuns.filter(a=>a.p>0).length ? wkRuns.filter(a=>a.p>0).reduce((s,a)=>s+a.p,0)/wkRuns.filter(a=>a.p>0).length : 0;
+            const wkAvgHr = wkRuns.filter(a=>a.hr>0).length ? wkRuns.filter(a=>a.hr>0).reduce((s,a)=>s+a.hr,0)/wkRuns.filter(a=>a.hr>0).length : 0;
+            const wkAvgWatts = wkRuns.filter(a=>a.w>0).length ? wkRuns.filter(a=>a.w>0).reduce((s,a)=>s+a.w,0)/wkRuns.filter(a=>a.w>0).length : 0;
+
+            // Previous week stats for comparison
+            const pwRuns = prevWeekActivities.filter(a => a.t === "Run");
+            const pwKm = pwRuns.reduce((s,a) => s + a.km, 0);
+            const kmDiff = pwKm > 0 ? ((wkKm - pwKm) / pwKm * 100) : 0;
+
+            // Coach analysis helpers
+            const getHrZone = (hr) => {
+              if (hr <= 0) return null;
+              const z = ATHLETE.hrZones.find(z => hr >= z.min && hr < z.max);
+              return z || ATHLETE.hrZones[ATHLETE.hrZones.length-1];
+            };
+
+            const getRunType = (a) => {
+              if (a.p <= 0) return "Run";
+              if (a.km >= 18) return "Long Run";
+              if (a.km >= 12) return "Medio Largo";
+              if (a.p < 5.2) return "Intervalos / Velocidad";
+              if (a.p < 5.6) return "Tempo Run";
+              if (a.p < 6.2) return "Run Moderado";
+              return "Run Fácil / Recovery";
+            };
+
+            const getCoachNote = (a) => {
+              if (a.t === "WeightTraining") {
+                const mins = Math.round(a.s/60);
+                if (mins > 60) return {emoji:"💪", note:"Sesión de fuerza completa. Buen complemento para running.", tip:"Hidrátate bien y estira después del gym."};
+                if (mins > 30) return {emoji:"🏋️", note:"Sesión de fuerza moderada. Fortaleces la cadena posterior.", tip:"Enfócate en sentadillas y lunges para transferir al running."};
+                return {emoji:"⚡", note:"Sesión corta de activación o movilidad.", tip:"Perfecto para días de recuperación activa."};
+              }
+              const zone = getHrZone(a.hr);
+              const zName = zone ? zone.name.split(" ")[0] : "";
+              if (a.km >= 18) return {emoji:"🏆", note:`Long run de ${fmt(a.km)}km a pace ${fmtPace(a.p)}. Excelente para resistencia aeróbica y adaptación mitocondrial.`, tip:`Recuperación: ${a.hr > 160 ? "48h sin intensidad. Fue un esfuerzo alto." : "24h fácil. Buen control de intensidad."}`};
+              if (a.km >= 12) return {emoji:"📏", note:`Medio largo de ${fmt(a.km)}km en ${zName}. Construcción de volumen sólida.`, tip:a.hr > 165 ? "El HR estuvo alto para esta distancia. Intenta mantener Z2 en los largos." : "Buen control cardíaco. Estás construyendo base aeróbica."};
+              if (a.p < 5.2 && a.p > 0) return {emoji:"🔥", note:`Sesión rápida a ${fmtPace(a.p)}/km. Trabajo de velocidad que mejora tu VO2max.`, tip:"Recuperación activa mañana: trote suave 30min o descanso total."};
+              if (a.p < 5.6 && a.p > 0) return {emoji:"⚡", note:`Tempo run a ${fmtPace(a.p)}/km. Mejora tu umbral de lactato.`, tip:"Próximo día: run fácil en Z2 para asimilar el estímulo."};
+              if (a.p >= 6.2 || (a.hr > 0 && a.hr < 155)) return {emoji:"🧘", note:`Run fácil a ${fmtPace(a.p)}/km en zona aeróbica baja. Perfecto para recuperación.`, tip:"Este tipo de runs son la base del 80% fácil. Sigue así."};
+              return {emoji:"🏃", note:`Run de ${fmt(a.km)}km a ${fmtPace(a.p)}/km${a.hr>0?` con FC ${Math.round(a.hr)} bpm (${zName})`:""}.`, tip:"Mantén la variedad de estímulos entre sesiones."};
+            };
+
+            const getWeekCoachSummary = () => {
+              const notes = [];
+              // Volume analysis
+              if (wkKm > 50) notes.push({icon:"🔥",title:"Volumen alto",text:`${fmt(wkKm)}km esta semana. Cuidado con la sobrecarga. La próxima semana reduce ~15%.`});
+              else if (wkKm > 35) notes.push({icon:"💪",title:"Buen volumen",text:`${fmt(wkKm)}km es un volumen sólido. Puedes mantenerlo o subir 5-10% la próxima semana.`});
+              else if (wkKm > 20) notes.push({icon:"📊",title:"Volumen moderado",text:`${fmt(wkKm)}km. Hay espacio para crecer. Agrega 1 sesión corta de 5-6km.`});
+              else notes.push({icon:"🌱",title:"Semana ligera",text:`${fmt(wkKm)}km. ${wkRuns.length === 0 ? "Sin carreras esta semana." : "Fue una semana de descanso o baja actividad."}`});
+
+              // Intensity mix
+              const easyRuns = wkRuns.filter(a => a.p >= 5.8 || (a.hr > 0 && a.hr < 158));
+              const hardRuns = wkRuns.filter(a => a.p < 5.6 && a.p > 0);
+              const ratio = wkRuns.length > 0 ? Math.round(easyRuns.length / wkRuns.length * 100) : 0;
+              if (wkRuns.length >= 3) {
+                if (ratio >= 70) notes.push({icon:"✅",title:"Polarización correcta",text:`${ratio}% de tus runs fueron fáciles. La regla 80/20 protege de lesiones.`});
+                else notes.push({icon:"⚠️",title:"Mucha intensidad",text:`Solo ${ratio}% de runs fáciles. Sustituye 1 sesión intensa por un run en Z2.`});
+              }
+
+              // Strength training
+              if (wkGym.length >= 2) notes.push({icon:"🏋️",title:`${wkGym.length} sesiones de gym`,text:"Excelente complemento. La fuerza previene lesiones y mejora economía de carrera."});
+              else if (wkGym.length === 1) notes.push({icon:"💡",title:"1 sesión de gym",text:"Intenta llegar a 2-3 sesiones. Fuerza + running = combinación ganadora."});
+              else if (wkRuns.length > 0) notes.push({icon:"🏋️",title:"Sin gym esta semana",text:"Agrega 2 sesiones de fuerza. Sentadillas, lunges y plancha son clave."});
+
+              // Week vs previous week
+              if (pwKm > 0) {
+                if (kmDiff > 15) notes.push({icon:"📈",title:`+${fmt(kmDiff,0)}% vs semana anterior`,text:`Subiste de ${fmt(pwKm)}km a ${fmt(wkKm)}km. Cuidado con subir más del 10% semanal.`});
+                else if (kmDiff < -15) notes.push({icon:"📉",title:`${fmt(kmDiff,0)}% vs semana anterior`,text:`Bajaste de ${fmt(pwKm)}km a ${fmt(wkKm)}km. ${kmDiff < -30 ? "Fue descanso planificado?" : "Ligera reducción — puede ser beneficioso."}`});
+                else notes.push({icon:"➡️",title:"Volumen estable",text:`Similar a la semana pasada (${fmt(pwKm)}km → ${fmt(wkKm)}km). Consistencia es clave.`});
+              }
+
+              return notes;
+            };
+
+            const getNextWeekRec = () => {
+              const recs = [];
+              if (wkKm > 45) {
+                recs.push("Semana de descarga: reduce a ~30-35km con intensidad baja.");
+                recs.push("Máximo 1 sesión de tempo suave. El resto fácil en Z2.");
+              } else if (wkKm > 30) {
+                recs.push(`Objetivo: ${fmt(wkKm * 1.05)}-${fmt(wkKm * 1.1)}km (subida gradual del 5-10%).`);
+                recs.push("Incluye 1 sesión de intervalos (6×800m) y 1 long run de 14-16km.");
+              } else {
+                recs.push(`Objetivo: ${fmt(Math.max(wkKm * 1.1, 25))}km con 3-4 sesiones de running.`);
+                recs.push("Prioriza consistencia: mejor 4 runs de 7km que 2 de 14km.");
+              }
+              if (wkGym.length < 2) recs.push("Agrega 2 sesiones de fuerza (30-45min cada una).");
+              recs.push("Asegura 7-8 horas de sueño y buena hidratación.");
+              return recs;
+            };
+
+            const weekCoachNotes = getWeekCoachSummary();
+            const nextWeekRecs = getNextWeekRec();
+
+            return (
+            <div style={{display:"flex",flexDirection:"column",gap:20}}>
+
+              {/* ── ACTIVIDAD DESTACADA (día más reciente) ── */}
+              <Card className="p-5" glow={N.cyan}>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16,flexWrap:"wrap",gap:8}}>
+                  <div style={{display:"flex",alignItems:"center",gap:10}}>
+                    <div style={{width:40,height:40,borderRadius:12,background:"linear-gradient(135deg,#06b6d4,#3b82f6)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>📋</div>
+                    <div>
+                      <h3 style={{fontSize:"1rem",fontWeight:900,color:"white"}}>Último Entrenamiento</h3>
+                      <p style={{fontSize:"0.7rem",color:"#6b7280"}}>{featuredDayName} {featuredDate}</p>
+                    </div>
+                  </div>
+                  {featuredActivities.length > 0 && <span style={{fontSize:"0.65rem",padding:"4px 10px",borderRadius:9999,background:"rgba(6,182,212,0.15)",color:N.cyan,fontWeight:700}}>{featuredActivities.length} {featuredActivities.length===1?"actividad":"actividades"}</span>}
+                </div>
+
+                {featuredActivities.length === 0 ? (
+                  <div style={{textAlign:"center",padding:24,color:"#6b7280"}}>
+                    <p style={{fontSize:"2rem"}}>🧘</p>
+                    <p style={{fontSize:"0.8rem",marginTop:8}}>Día de descanso</p>
+                    <p style={{fontSize:"0.675rem",color:"#4b5563",marginTop:4}}>La recuperación es parte del entrenamiento</p>
+                  </div>
+                ) : featuredActivities.map((a, i) => {
+                  const coach = getCoachNote(a);
+                  const zone = getHrZone(a.hr);
+                  const runType = a.t === "Run" ? getRunType(a) : "Fuerza";
+                  return (
+                    <div key={i} style={{background:"rgba(255,255,255,0.02)",borderRadius:14,padding:16,border:"1px solid rgba(255,255,255,0.04)",marginBottom:i<featuredActivities.length-1?12:0}}>
+                      {/* Activity header */}
+                      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+                        <div style={{display:"flex",alignItems:"center",gap:10}}>
+                          <span style={{fontSize:"1.5rem"}}>{coach.emoji}</span>
+                          <div>
+                            <p style={{fontSize:"0.85rem",fontWeight:700,color:"white"}}>{runType}</p>
+                            <p style={{fontSize:"0.65rem",color:"#6b7280"}}>{a.t === "Run" ? `${fmt(a.km)}km · ${fmtTime(a.s)}` : `Gym · ${fmtTime(a.s)}`}{a.n ? ` · ${a.n}` : ""}</p>
+                          </div>
+                        </div>
+                        {a.t === "Run" && a.g && (
+                          <span style={{fontSize:"0.6rem",padding:"3px 8px",borderRadius:9999,background:a.g==="azul"?"rgba(59,130,246,0.15)":"rgba(239,68,68,0.15)",color:a.g==="azul"?"#3b82f6":"#ef4444",fontWeight:600}}>
+                            {a.g==="azul"?"🔵 Mar azul":"🔴 Llama roja"}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Stats grid for runs */}
+                      {a.t === "Run" && (
+                        <div className="metric-grid" style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(90px,1fr))",gap:8,marginBottom:12}}>
+                          {a.p > 0 && <div style={{background:"rgba(255,255,255,0.03)",borderRadius:10,padding:10,textAlign:"center"}}>
+                            <p style={{fontSize:"0.575rem",color:"#6b7280",textTransform:"uppercase"}}>Pace</p>
+                            <p style={{fontSize:"1rem",fontWeight:900,color:N.green}}>{fmtPace(a.p)}</p>
+                            <p style={{fontSize:"0.55rem",color:"#4b5563"}}>min/km</p>
+                          </div>}
+                          {a.hr > 0 && <div style={{background:"rgba(255,255,255,0.03)",borderRadius:10,padding:10,textAlign:"center"}}>
+                            <p style={{fontSize:"0.575rem",color:"#6b7280",textTransform:"uppercase"}}>FC Prom</p>
+                            <p style={{fontSize:"1rem",fontWeight:900,color:N.red}}>{Math.round(a.hr)}</p>
+                            <p style={{fontSize:"0.55rem",color:"#4b5563"}}>{zone ? zone.name.split(" ").slice(0,2).join(" ") : "bpm"}</p>
+                          </div>}
+                          {a.w > 0 && <div style={{background:"rgba(255,255,255,0.03)",borderRadius:10,padding:10,textAlign:"center"}}>
+                            <p style={{fontSize:"0.575rem",color:"#6b7280",textTransform:"uppercase"}}>Potencia</p>
+                            <p style={{fontSize:"1rem",fontWeight:900,color:N.orange}}>{Math.round(a.w)}</p>
+                            <p style={{fontSize:"0.55rem",color:"#4b5563"}}>watts</p>
+                          </div>}
+                          {a.cal > 0 && <div style={{background:"rgba(255,255,255,0.03)",borderRadius:10,padding:10,textAlign:"center"}}>
+                            <p style={{fontSize:"0.575rem",color:"#6b7280",textTransform:"uppercase"}}>Calorías</p>
+                            <p style={{fontSize:"1rem",fontWeight:900,color:N.yellow}}>{a.cal}</p>
+                            <p style={{fontSize:"0.55rem",color:"#4b5563"}}>kcal</p>
+                          </div>}
+                          {a.el > 0 && <div style={{background:"rgba(255,255,255,0.03)",borderRadius:10,padding:10,textAlign:"center"}}>
+                            <p style={{fontSize:"0.575rem",color:"#6b7280",textTransform:"uppercase"}}>Elevación</p>
+                            <p style={{fontSize:"1rem",fontWeight:900,color:N.purple}}>{a.el}</p>
+                            <p style={{fontSize:"0.55rem",color:"#4b5563"}}>metros</p>
+                          </div>}
+                          {a.mhr > 0 && <div style={{background:"rgba(255,255,255,0.03)",borderRadius:10,padding:10,textAlign:"center"}}>
+                            <p style={{fontSize:"0.575rem",color:"#6b7280",textTransform:"uppercase"}}>FC Max</p>
+                            <p style={{fontSize:"1rem",fontWeight:900,color:"#f87171"}}>{a.mhr}</p>
+                            <p style={{fontSize:"0.55rem",color:"#4b5563"}}>bpm</p>
+                          </div>}
+                        </div>
+                      )}
+
+                      {/* Coach note */}
+                      <div style={{background:"rgba(6,182,212,0.05)",borderRadius:10,padding:12,border:"1px solid rgba(6,182,212,0.1)"}}>
+                        <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
+                          <Icon type="sparkles" size={12} color={N.cyan}/>
+                          <span style={{fontSize:"0.65rem",fontWeight:700,color:N.cyan,textTransform:"uppercase",letterSpacing:"0.05em"}}>Nota del Coach</span>
+                        </div>
+                        <p style={{fontSize:"0.75rem",color:"#d1d5db",lineHeight:1.6}}>{coach.note}</p>
+                        <p style={{fontSize:"0.7rem",color:N.green,fontWeight:600,marginTop:6}}>→ {coach.tip}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </Card>
+
+              {/* ── LOG DIARIO DE LA SEMANA ── */}
+              <Card className="p-5" glow={N.purple}>
+                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
+                  <div style={{width:36,height:36,borderRadius:10,background:"linear-gradient(135deg,#a855f7,#ec4899)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>📅</div>
+                  <div>
+                    <h3 style={{fontSize:"1rem",fontWeight:900,color:"white"}}>Semana Actual</h3>
+                    <p style={{fontSize:"0.65rem",color:"#6b7280"}}>{weekStart.getDate()} {MONTHS[weekStart.getMonth()]} — {weekEnd.getDate()} {MONTHS[weekEnd.getMonth()]} {weekEnd.getFullYear()}</p>
+                  </div>
+                </div>
+
+                <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                  {weekDays.map((day, i) => {
+                    const hasActivities = day.activities.length > 0;
+                    const dayRuns = day.activities.filter(a => a.t === "Run");
+                    const dayGym = day.activities.filter(a => a.t === "WeightTraining");
+                    const dayKm = dayRuns.reduce((s,a) => s+a.km, 0);
+                    const dayTime = day.activities.reduce((s,a) => s+a.s, 0);
+
+                    return (
+                      <div key={i} style={{
+                        display:"flex",alignItems:"center",gap:12,padding:"10px 14px",borderRadius:12,
+                        background: day.isToday ? "rgba(6,182,212,0.08)" : hasActivities ? "rgba(255,255,255,0.02)" : "transparent",
+                        border: day.isToday ? "1px solid rgba(6,182,212,0.2)" : "1px solid rgba(255,255,255,0.02)",
+                        opacity: day.isPast ? 1 : 0.4
+                      }}>
+                        {/* Day indicator */}
+                        <div style={{width:44,textAlign:"center",flexShrink:0}}>
+                          <p style={{fontSize:"0.6rem",color: day.isToday ? N.cyan : "#6b7280",fontWeight:700,textTransform:"uppercase"}}>{day.dayShort}</p>
+                          <p style={{fontSize:"1.1rem",fontWeight:900,color: day.isToday ? "white" : day.isPast ? "#9ca3af" : "#374151"}}>{day.date.split("-")[2]}</p>
+                        </div>
+
+                        {/* Activity badges */}
+                        <div style={{flex:1,display:"flex",flexWrap:"wrap",gap:6,alignItems:"center"}}>
+                          {!hasActivities && day.isPast && <span style={{fontSize:"0.7rem",color:"#4b5563"}}>Descanso</span>}
+                          {!hasActivities && !day.isPast && <span style={{fontSize:"0.7rem",color:"#374151"}}>—</span>}
+                          {dayRuns.map((r,ri) => (
+                            <span key={`r${ri}`} style={{display:"inline-flex",alignItems:"center",gap:4,padding:"4px 10px",borderRadius:8,fontSize:"0.65rem",fontWeight:600,background:"rgba(16,185,129,0.1)",color:N.green,border:"1px solid rgba(16,185,129,0.15)"}}>
+                              🏃 {fmt(r.km)}km · {fmtPace(r.p)}/km{r.n ? ` · ${r.n}` : ""}
+                            </span>
+                          ))}
+                          {dayGym.map((g,gi) => (
+                            <span key={`g${gi}`} style={{display:"inline-flex",alignItems:"center",gap:4,padding:"4px 10px",borderRadius:8,fontSize:"0.65rem",fontWeight:600,background:"rgba(249,115,22,0.1)",color:N.orange,border:"1px solid rgba(249,115,22,0.15)"}}>
+                              🏋️ Gym · {fmtTime(g.s)}
+                            </span>
+                          ))}
+                        </div>
+
+                        {/* Day totals */}
+                        {hasActivities && (
+                          <div style={{textAlign:"right",flexShrink:0}}>
+                            {dayKm > 0 && <p style={{fontSize:"0.75rem",fontWeight:700,color:"white"}}>{fmt(dayKm)}km</p>}
+                            <p style={{fontSize:"0.6rem",color:"#6b7280"}}>{fmtTime(dayTime)}</p>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Week mini-totals bar */}
+                <div className="metric-grid" style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(100px,1fr))",gap:10,marginTop:16,paddingTop:14,borderTop:"1px solid rgba(255,255,255,0.05)"}}>
+                  <div style={{textAlign:"center"}}><p style={{fontSize:"0.55rem",color:"#6b7280",textTransform:"uppercase"}}>Distancia</p><p style={{fontSize:"1.1rem",fontWeight:900,color:N.cyan}}>{fmt(wkKm)}km</p></div>
+                  <div style={{textAlign:"center"}}><p style={{fontSize:"0.55rem",color:"#6b7280",textTransform:"uppercase"}}>Tiempo</p><p style={{fontSize:"1.1rem",fontWeight:900,color:N.purple}}>{fmtTime(wkTime)}</p></div>
+                  <div style={{textAlign:"center"}}><p style={{fontSize:"0.55rem",color:"#6b7280",textTransform:"uppercase"}}>Runs</p><p style={{fontSize:"1.1rem",fontWeight:900,color:N.green}}>{wkRuns.length}</p></div>
+                  <div style={{textAlign:"center"}}><p style={{fontSize:"0.55rem",color:"#6b7280",textTransform:"uppercase"}}>Gym</p><p style={{fontSize:"1.1rem",fontWeight:900,color:N.orange}}>{wkGym.length}</p></div>
+                  <div style={{textAlign:"center"}}><p style={{fontSize:"0.55rem",color:"#6b7280",textTransform:"uppercase"}}>Calorías</p><p style={{fontSize:"1.1rem",fontWeight:900,color:N.yellow}}>{(wkCal/1000).toFixed(1)}K</p></div>
+                </div>
+              </Card>
+
+              {/* ── WEEKLY CHART: Daily km ── */}
+              <Card className="p-5" glow={N.green}>
+                <h3 style={{fontSize:"0.875rem",fontWeight:700,color:"#e5e7eb",marginBottom:12}}>Km por Día esta Semana</h3>
+                <div className="coach-row" style={{display:"flex",gap:16,alignItems:"stretch"}}>
+                  <div style={{flex:1,minWidth:0}}>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <BarChart data={weekDays.map(d => ({
+                        day: d.dayShort,
+                        km: d.activities.filter(a=>a.t==="Run").reduce((s,a)=>s+a.km,0),
+                        isToday: d.isToday,
+                        isPast: d.isPast
+                      }))}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff08"/>
+                        <XAxis dataKey="day" tick={{fill:"#9ca3af",fontSize:11}}/>
+                        <YAxis tick={{fill:"#6b7280",fontSize:10}}/>
+                        <Tooltip content={<TT/>}/>
+                        <Bar dataKey="km" name="Km" radius={[6,6,0,0]}>
+                          {weekDays.map((d,i) => <Cell key={i} fill={d.isToday ? N.cyan : d.activities.filter(a=>a.t==="Run").length > 0 ? N.green : "#1f2937"} fillOpacity={d.isPast ? 0.9 : 0.2}/>)}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <CoachTip color={N.green}
+                    title={wkRuns.length >= 4 ? "Semana activa" : wkRuns.length >= 2 ? "Buen ritmo" : "Semana tranquila"}
+                    explain={`${wkRuns.length} runs y ${wkGym.length} gym en ${weekDays.filter(d=>d.isPast).length} días. Pace promedio: ${wkAvgPace > 0 ? fmtPace(wkAvgPace)+"/km" : "—"}.`}
+                    action={wkRuns.length >= 4 ? "No agregues más sesiones intensas. El volumen ya es bueno." : "Aún puedes agregar 1-2 sesiones esta semana para llegar al objetivo."}
+                  />
+                </div>
+              </Card>
+
+              {/* ── ANÁLISIS SEMANAL DEL COACH ── */}
+              <Card className="p-5" glow={N.blue}>
+                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
+                  <div style={{width:36,height:36,borderRadius:10,background:"linear-gradient(135deg,#3b82f6,#06b6d4)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>🧠</div>
+                  <div>
+                    <h3 style={{fontSize:"1rem",fontWeight:900,color:"white"}}>Análisis Semanal del Coach</h3>
+                    <p style={{fontSize:"0.65rem",color:"#6b7280"}}>Semana del {weekStart.getDate()} {MONTHS[weekStart.getMonth()]}{pwKm > 0 ? ` · vs ${fmt(pwKm)}km semana anterior` : ""}</p>
+                  </div>
+                </div>
+
+                <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                  {weekCoachNotes.map((note, i) => (
+                    <div key={i} style={{display:"flex",alignItems:"flex-start",gap:12,background:"rgba(255,255,255,0.015)",borderRadius:12,padding:14,border:"1px solid rgba(255,255,255,0.03)"}}>
+                      <span style={{fontSize:"1.3rem",flexShrink:0,marginTop:2}}>{note.icon}</span>
+                      <div>
+                        <p style={{fontSize:"0.8rem",fontWeight:700,color:"white"}}>{note.title}</p>
+                        <p style={{fontSize:"0.7rem",color:"#9ca3af",marginTop:3,lineHeight:1.6}}>{note.text}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+
+              {/* ── PLAN PRÓXIMA SEMANA ── */}
+              <Card className="p-5" glow={N.green}>
+                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
+                  <div style={{width:36,height:36,borderRadius:10,background:"linear-gradient(135deg,#10b981,#06b6d4)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>🎯</div>
+                  <h3 style={{fontSize:"1rem",fontWeight:900,color:"white"}}>Recomendaciones para la Próxima Semana</h3>
+                </div>
+
+                <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                  {nextWeekRecs.map((rec, i) => (
+                    <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:12,background:"rgba(16,185,129,0.04)",borderRadius:10,border:"1px solid rgba(16,185,129,0.08)"}}>
+                      <div style={{width:24,height:24,borderRadius:8,background:"rgba(16,185,129,0.15)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"0.7rem",fontWeight:900,color:N.green,flexShrink:0}}>{i+1}</div>
+                      <p style={{fontSize:"0.75rem",color:"#d1d5db",lineHeight:1.5}}>{rec}</p>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+
+            </div>
+            );
+          })()}
 
           {/* ═══════ OVERVIEW ═══════ */}
           {tab==="overview" && (
