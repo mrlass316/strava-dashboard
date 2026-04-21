@@ -103,9 +103,9 @@
         "21K": { time: 6582, date: "2026-03-08", pace: "5:11/km" },
         "30K": { time: 11898, date: "2025-09-06", pace: "6:36/km" }
       },
-      allTimeKm: 10115, allTimeRuns: 1020, allTimeHours: 1077,
+      allTimeKm: 10127, allTimeRuns: 1021, allTimeHours: 1078,
       shoes: [
-        { name: "ASICS Nimbus El mar azul", km: 204, maxKm: 700, color: "#3b82f6", icon: "🔵", firstUse: "2026-03-08", lastUse: "2026-04-17" },
+        { name: "ASICS Nimbus El mar azul", km: 216, maxKm: 700, color: "#3b82f6", icon: "🔵", firstUse: "2026-03-08", lastUse: "2026-04-21" },
         { name: "ASICS Nimbus La llama roja", km: 506, maxKm: 700, color: "#ef4444", icon: "🔴", firstUse: "2025-09-06", lastUse: "2026-04-18" }
       ]
     };
@@ -114,6 +114,8 @@
     // 409 STRAVA ACTIVITIES
     // ═══════════════════════════════════════════════════════════════
     const RAW = [
+      {id:-3,t:"WeightTraining",d:"2026-04-21",km:0,s:0,el:0,hr:0,p:0,w:0,cal:0},
+      {id:-2,t:"Run",d:"2026-04-21",km:12.05,s:3929,el:23,hr:161.3,p:5.43,w:223.5,cal:768,mhr:187,g:"azul",n:"Fartlek suave"},
       {id:0,t:"Run",d:"2026-04-18",km:14.07,s:5340,el:9,hr:147.5,p:6.33,w:193,cal:857,mhr:180,g:"roja"},
       {id:1,t:"WeightTraining",d:"2026-04-17",km:0,s:2554,el:0,hr:0,p:0,w:0,cal:0},
       {id:2,t:"Run",d:"2026-04-17",km:10.01,s:3572,el:19,hr:156.2,p:5.95,w:204.9,cal:624,mhr:171,g:"azul"},
@@ -850,7 +852,7 @@
       // Heatmap
       const HeatmapGrid = () => {
         const weeks=[];
-        const start=new Date("2026-01-01"), end=new Date("2026-04-17");
+        const start=new Date("2026-01-01"), end=new Date("2026-04-21");
         let cur=new Date(start);cur.setDate(cur.getDate()-cur.getDay());
         while(cur<=end){
           const week=[];
