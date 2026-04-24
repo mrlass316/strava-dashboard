@@ -24,15 +24,33 @@ cd "$REPO_DIR" || {
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" | tee -a "$LOG_FILE"
 echo "🏃 Deploy iniciado: $TIMESTAMP" | tee -a "$LOG_FILE"
 
-# Verificar si hay cambios
-if git diff --quiet && git diff --cached --quiet && [ -z "$(git ls-files --others --exclude-standard)" ]; then
+# Verificar si hay cambios sin commitear
+HAS_UNCOMMITTED=false
+HAS_UNPUSHED=false
+
+if ! (git diff --quiet && git diff --cached --quiet && [ -z "$(git ls-files --others --exclude-standard)" ]); then
+    HAS_UNCOMMITTED=true
+fi
+
+# Verificar si hay commits locales sin pushear
+LOCAL=$(git rev-parse HEAD 2>/dev/null)
+REMOTE=$(git rev-parse origin/main 2>/dev/null)
+if [ "$LOCAL" != "$REMOTE" ]; then
+    HAS_UNPUSHED=true
+fi
+
+if [ "$HAS_UNCOMMITTED" = false ] && [ "$HAS_UNPUSHED" = false ]; then
     echo "✅ No hay cambios nuevos. Nada que deployar." | tee -a "$LOG_FILE"
     exit 0
 fi
 
-# Stage, commit y push
-git add .
-git commit -m "Update dashboard — $TIMESTAMP" 2>&1 | tee -a "$LOG_FILE"
+# Stage y commit si hay cambios sin commitear
+if [ "$HAS_UNCOMMITTED" = true ]; then
+    git add .
+    git commit -m "Update dashboard — $TIMESTAMP" 2>&1 | tee -a "$LOG_FILE"
+fi
+
+# Push (ya sea commit nuevo o commits pendientes)
 git push origin main 2>&1 | tee -a "$LOG_FILE"
 
 if [ $? -eq 0 ]; then
