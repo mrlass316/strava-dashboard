@@ -99,27 +99,28 @@
       ],
       bestEfforts: {
         "5K": { time: 1320, date: "2026-02-18", pace: "4:24/km" },
-        "10K": { time: 2880, date: "2026-02-18", pace: "4:48/km" },
+        "10K": { time: 2706, date: "2026-04-26", pace: "4:30/km" },
         "21K": { time: 6582, date: "2026-03-08", pace: "5:11/km" },
         "30K": { time: 11898, date: "2025-09-06", pace: "6:36/km" }
       },
-      allTimeKm: 10147, allTimeRuns: 1023, allTimeHours: 1080,
+      allTimeKm: 10168, allTimeRuns: 1026, allTimeHours: 1081,
       shoes: [
-        { name: "ASICS Nimbus El mar azul", km: 244, maxKm: 700, color: "#3b82f6", icon: "🔵", firstUse: "2026-03-08", lastUse: "2026-04-24" },
-        { name: "ASICS Nimbus La llama roja", km: 506, maxKm: 700, color: "#ef4444", icon: "🔴", firstUse: "2025-09-06", lastUse: "2026-04-18" }
+        { name: "ASICS Nimbus El mar azul", km: 248, maxKm: 700, color: "#3b82f6", icon: "🔵", firstUse: "2026-03-08", lastUse: "2026-04-26" },
+        { name: "ASICS Nimbus La llama roja", km: 514, maxKm: 700, color: "#ef4444", icon: "🔴", firstUse: "2025-09-06", lastUse: "2026-04-24" }
       ]
     };
 
     // ═══════════════════════════════════════════════════════════════
-    // STRAVA ACTIVITIES — actualizado 2026-04-24 (auto-sync 07:00)
+    // STRAVA ACTIVITIES — actualizado 2026-04-27 (🏆 NEW 10K PR el domingo 4/26: 45:06 @ 4:30/km, HR avg 188 / max 206)
     // ═══════════════════════════════════════════════════════════════
     const RAW = [
-      {id:-8,t:"Run",d:"2026-04-24",km:8.02,s:2810,el:17,hr:157,p:5.85,w:209,cal:498,mhr:173,g:"azul",n:"Morning Run"},
+      {id:-11,t:"Run",d:"2026-04-26",km:10.01,s:2706,el:13,hr:187.6,p:4.50,w:258.2,cal:618,mhr:206,g:"azul",n:"🏆 10K Race PR — 45:06"},
+      {id:-10,t:"Run",d:"2026-04-26",km:1.51,s:628,el:8,hr:134.5,p:6.95,w:166.9,cal:89,mhr:152,g:"azul",n:"Warm-up race"},
+      {id:-8,t:"Run",d:"2026-04-24",km:8.02,s:2810,el:17,hr:157.3,p:5.84,w:208.8,cal:498,mhr:173,g:"roja",n:"Morning Run"},
       {id:-7,t:"WeightTraining",d:"2026-04-23",km:0,s:3625,el:0,hr:0,p:0,w:0,cal:0},
-      {id:-6,t:"WeightTraining",d:"2026-04-23",km:0,s:3625,el:0,hr:0,p:0,w:0,cal:0},
       {id:-5,t:"WeightTraining",d:"2026-04-22",km:0,s:3406,el:0,hr:0,p:0,w:0,cal:0},
-      {id:-4,t:"Run",d:"2026-04-22",km:12.02,s:3932,el:20,hr:163,p:5.45,w:222,cal:747,mhr:185,g:"azul",n:"S1 Mié — Cambios de ritmo 4x800m"},
-      {id:-3,t:"WeightTraining",d:"2026-04-21",km:0,s:0,el:0,hr:0,p:0,w:0,cal:0},
+      {id:-4,t:"Run",d:"2026-04-22",km:12.02,s:3932,el:20,hr:163.3,p:5.45,w:222.2,cal:747,mhr:185,g:"azul",n:"S1 Mié — Cambios de ritmo 4x800m"},
+      {id:-3,t:"WeightTraining",d:"2026-04-21",km:0,s:3631,el:0,hr:114.9,p:0,w:0,cal:0,mhr:144},
       {id:-2,t:"Run",d:"2026-04-21",km:12.05,s:3929,el:23,hr:161.3,p:5.43,w:223.5,cal:768,mhr:187,g:"azul",n:"Fartlek suave"},
       {id:0,t:"Run",d:"2026-04-18",km:14.07,s:5340,el:9,hr:147.5,p:6.33,w:193,cal:857,mhr:180,g:"roja"},
       {id:1,t:"WeightTraining",d:"2026-04-17",km:0,s:2554,el:0,hr:0,p:0,w:0,cal:0},
@@ -1131,8 +1132,56 @@
             const weekCoachNotes = getWeekCoachSummary();
             const nextWeekRecs = getNextWeekRec();
 
+            // PR check: most recent 10K PR
+            const tenKPR = ATHLETE.bestEfforts["10K"];
+            const tenKPRDate = new Date(tenKPR.date);
+            const daysSincePR = Math.floor((now - tenKPRDate) / (1000*60*60*24));
+            const showPRCelebration = daysSincePR <= 14 && tenKPR.date >= "2026-04-01";
+
             return (
             <div style={{display:"flex",flexDirection:"column",gap:20}}>
+
+              {/* ── 🏆 HITO RECIENTE (PR celebration) ── */}
+              {showPRCelebration && (
+                <Card className="p-5" glow={N.yellow} style={{background:"linear-gradient(135deg,rgba(234,179,8,0.08),rgba(249,115,22,0.04))"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:14,flexWrap:"wrap"}}>
+                    <div style={{width:48,height:48,borderRadius:14,background:"linear-gradient(135deg,#eab308,#f97316)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24}}>🏆</div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <h3 style={{fontSize:"1.05rem",fontWeight:900,color:"white"}}>¡Nuevo Récord Personal en 10K!</h3>
+                      <p style={{fontSize:"0.7rem",color:"#fbbf24",marginTop:2}}>Domingo {tenKPR.date} · {fmtTime(tenKPR.time)} · {tenKPR.pace} · −2:54 vs PR anterior</p>
+                    </div>
+                  </div>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10,marginBottom:14}}>
+                    <div style={{background:"rgba(255,255,255,0.03)",borderRadius:10,padding:10,textAlign:"center",border:"1px solid rgba(234,179,8,0.15)"}}>
+                      <p style={{fontSize:"0.6rem",color:"#9ca3af",textTransform:"uppercase"}}>Tiempo</p>
+                      <p style={{fontSize:"1.25rem",fontWeight:900,color:N.yellow}}>{fmtTime(tenKPR.time)}</p>
+                    </div>
+                    <div style={{background:"rgba(255,255,255,0.03)",borderRadius:10,padding:10,textAlign:"center",border:"1px solid rgba(234,179,8,0.15)"}}>
+                      <p style={{fontSize:"0.6rem",color:"#9ca3af",textTransform:"uppercase"}}>Pace</p>
+                      <p style={{fontSize:"1.25rem",fontWeight:900,color:N.orange}}>{tenKPR.pace}</p>
+                    </div>
+                    <div style={{background:"rgba(255,255,255,0.03)",borderRadius:10,padding:10,textAlign:"center",border:"1px solid rgba(234,179,8,0.15)"}}>
+                      <p style={{fontSize:"0.6rem",color:"#9ca3af",textTransform:"uppercase"}}>FC Avg / Max</p>
+                      <p style={{fontSize:"1.25rem",fontWeight:900,color:N.red}}>188 / 206</p>
+                    </div>
+                    <div style={{background:"rgba(255,255,255,0.03)",borderRadius:10,padding:10,textAlign:"center",border:"1px solid rgba(234,179,8,0.15)"}}>
+                      <p style={{fontSize:"0.6rem",color:"#9ca3af",textTransform:"uppercase"}}>Mejora</p>
+                      <p style={{fontSize:"1.25rem",fontWeight:900,color:N.green}}>−2:54</p>
+                    </div>
+                  </div>
+                  <div style={{background:"rgba(6,182,212,0.05)",borderRadius:10,padding:12,border:"1px solid rgba(6,182,212,0.12)"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                      <span style={{fontSize:"0.7rem",fontWeight:700,color:N.cyan,textTransform:"uppercase",letterSpacing:"0.05em"}}>🧠 Lectura del Coach</span>
+                    </div>
+                    <p style={{fontSize:"0.75rem",color:"#d1d5db",lineHeight:1.6,marginBottom:8}}>
+                      45:06 a 4:30/km con HR avg 188 y máx 206 = esfuerzo casi máximo en Z5. La mejora de casi 3 minutos sobre tu PR de febrero confirma que la base aeróbica que has construido (CTL alto) está dando frutos. Las 4 semanas previas con volumen ~50km y polarización 80/20 funcionaron. La nueva proyección Daniels: media maratón sub-1h40 y full sub-3h35 son alcanzables.
+                    </p>
+                    <p style={{fontSize:"0.75rem",color:N.green,fontWeight:600,lineHeight:1.6}}>
+                      → <strong>Próxima semana (S2 plan 21K):</strong> esta semana es de descarga activa post-race. Día 1-2: solo trote regenerativo Z1 (30 min). Mié: tempo suave. Sáb: long run 14-16km Z2. Domingo: descanso o cross-training. Reincorporar intervalos solo a partir de S3.
+                    </p>
+                  </div>
+                </Card>
+              )}
 
               {/* ── ACTIVIDAD DESTACADA (día más reciente) ── */}
               <Card className="p-5" glow={N.cyan}>
@@ -1637,7 +1686,7 @@
                   {[
                     {title:"Regla del 10%",text:`Tu volumen actual es ~${fmt(weeklyAgg.slice(-4).reduce((s,w)=>s+w.km,0)/4)}km/semana. No aumentes más de ${fmt(weeklyAgg.slice(-4).reduce((s,w)=>s+w.km,0)/4*0.1)}km la próxima semana.`,color:N.cyan},
                     {title:"Carreras fáciles",text:`${aerobicPct}% de tu entrenamiento es aeróbico. ${aerobicPct>=75?"Excelente polarización.":"Intenta que el 80% sea en Z2."}`,color:N.green},
-                    {title:"VO2max potencial",text:`Con VO2max de ${vo2max}, tu potencial en 10K es ~${fmt(2880/60)}min y en media maratón ~${fmt(6582/60)}min. Mejora con intervalos 4×1200m a pace 4:40.`,color:N.pink},
+                    {title:"VO2max potencial",text:`Con VO2max de ${vo2max}, tu PR actual en 10K es 45:06 (4:30/km) — logrado el 26-Abr 🏆. Próximo objetivo: bajar de 1h40m en media maratón con intervalos 4×1200m a pace 4:30.`,color:N.pink},
                     {title:"Recuperación",text:`Con ${weights.length} sesiones de gym, tu fuerza complementa el running. Mantén 2-3 sesiones/semana.`,color:N.orange}
                   ].map((rec,i)=>(
                     <div key={i} style={{display:"flex",alignItems:"flex-start",gap:12,background:"rgba(255,255,255,0.015)",borderRadius:12,padding:14,border:"1px solid rgba(255,255,255,0.03)"}}>
@@ -1846,7 +1895,7 @@
                 <div className="coach-row" style={{display:"flex",gap:16,alignItems:"stretch"}}>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:12}}>
-                      {[{dist:"5K",pred:"22:00",pace:"4:24/km"},{dist:"10K",pred:"48:00",pace:"4:48/km"},{dist:"Media Maratón",pred:"1h 49m",pace:"5:11/km"},{dist:"Maratón",pred:"3h 55m",pace:"5:34/km"}].map((p,i)=>(
+                      {[{dist:"5K",pred:"21:30",pace:"4:18/km"},{dist:"10K",pred:"45:06",pace:"4:30/km"},{dist:"Media Maratón",pred:"1h 40m",pace:"4:46/km"},{dist:"Maratón",pred:"3h 32m",pace:"5:02/km"}].map((p,i)=>(
                         <div key={i} style={{background:"rgba(255,255,255,0.02)",borderRadius:12,padding:12,textAlign:"center",border:"1px solid rgba(255,255,255,0.03)"}}>
                           <p style={{fontSize:"0.625rem",color:"#6b7280",textTransform:"uppercase"}}>{p.dist}</p>
                           <p style={{fontSize:"1.125rem",fontWeight:900,color:"white",marginTop:4}}>{p.pred}</p>
