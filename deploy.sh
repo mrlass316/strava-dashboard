@@ -6,20 +6,35 @@
 # Crontab: se puede programar para ejecutar diariamente
 
 # ──── CONFIGURACIÓN ────
-# IMPORTANTE: Cambia esta ruta a donde está tu carpeta netlify-deploy
 REPO_DIR="/Users/luisalgenissanchez/Documents/Claude/Salud/TrainingPeaks/Algenis/netlify-deploy"
 # ───────────────────────
 
 TIMESTAMP=$(date "+%Y-%m-%d %H:%M")
 LOG_FILE="$REPO_DIR/deploy.log"
+SCRIPT_LOCK="/tmp/deploy_strava.lock"
+
+# ── Protección contra ejecuciones simultáneas ──────────────
+# Si ya hay una instancia corriendo, salir silenciosamente.
+if [ -f "$SCRIPT_LOCK" ]; then
+    OLD_PID=$(cat "$SCRIPT_LOCK")
+    if kill -0 "$OLD_PID" 2>/dev/null; then
+        echo "⏭️  Deploy ya en curso (PID $OLD_PID). Saliendo." | tee -a "$LOG_FILE"
+        exit 0
+    else
+        rm -f "$SCRIPT_LOCK"
+    fi
+fi
+echo $$ > "$SCRIPT_LOCK"
+trap 'rm -f "$SCRIPT_LOCK"' EXIT
 
 # Ir a la carpeta del repo
 cd "$REPO_DIR" || {
-    echo "❌ Error: No se encontró la carpeta $REPO_DIR"
-    echo "   Edita la variable REPO_DIR en este script con la ruta correcta."
-    echo "   Para encontrarla: abre Terminal, navega a la carpeta y escribe 'pwd'"
+    echo "❌ Error: No se encontró la carpeta $REPO_DIR" | tee -a "$LOG_FILE"
     exit 1
 }
+
+# ── Limpiar archivos .lock huérfanos de git ─────────────────
+find "$REPO_DIR/.git" -name "*.lock" -type f -delete 2>/dev/null
 
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" | tee -a "$LOG_FILE"
 echo "🏃 Deploy iniciado: $TIMESTAMP" | tee -a "$LOG_FILE"
