@@ -88,7 +88,7 @@
     // ATHLETE CONFIG
     // ═══════════════════════════════════════════════════════════════
     const ATHLETE = {
-      name: "Luis Sánchez", weight: 70.1, age: 35, joined: "Sep 2015",
+      name: "Luis Sánchez", weight: 68.7, age: 35, joined: "Sep 2015",
       restHr: 55, maxHr: 203,
       hrZones: [
         { name: "Z1 Recovery", min: 0, max: 124, color: "#6b7280" },
@@ -103,17 +103,20 @@
         "21K": { time: 6582, date: "2026-03-08", pace: "5:11/km" },
         "30K": { time: 11898, date: "2025-09-06", pace: "6:36/km" }
       },
-      allTimeKm: 10168, allTimeRuns: 1026, allTimeHours: 1081,
+      allTimeKm: 10188, allTimeRuns: 1028, allTimeHours: 1083,
       shoes: [
-        { name: "ASICS Nimbus El mar azul", km: 248, maxKm: 700, color: "#3b82f6", icon: "🔵", firstUse: "2026-03-08", lastUse: "2026-04-26" },
+        { name: "ASICS Nimbus El mar azul", km: 260, maxKm: 700, color: "#3b82f6", icon: "🔵", firstUse: "2026-03-08", lastUse: "2026-04-29" },
         { name: "ASICS Nimbus La llama roja", km: 522, maxKm: 700, color: "#ef4444", icon: "🔴", firstUse: "2025-09-06", lastUse: "2026-04-28" }
       ]
     };
 
     // ═══════════════════════════════════════════════════════════════
-    // STRAVA ACTIVITIES — actualizado 2026-04-28 (🏃 Run matutino 8km @ 5:52/km, HR 150/160 · 🏆 10K PR 4/26: 45:06 @ 4:30/km · Semana 1 plan 21K en marcha)
+    // STRAVA ACTIVITIES — actualizado 2026-04-29 (🏃 Morning Run 12km @ 5:12/km, HR 165/183 · 🏋️ 2 sesiones gym · Semana 1 plan 21K completada → inicio Semana 2)
     // ═══════════════════════════════════════════════════════════════
     const RAW = [
+      {id:-15,t:"WeightTraining",d:"2026-04-29",km:0,s:3600,el:0,hr:0,p:0,w:0,cal:0,n:"Back & Triceps"},
+      {id:-14,t:"WeightTraining",d:"2026-04-29",km:0,s:3600,el:0,hr:0,p:0,w:0,cal:0,n:"Ejercicios de fuerza"},
+      {id:-13,t:"Run",d:"2026-04-29",km:12.02,s:3757,el:28,hr:165.0,p:5.20,w:228.7,cal:738,mhr:183,g:"azul",n:"Morning Run"},
       {id:-12,t:"Run",d:"2026-04-28",km:8.02,s:2822,el:13,hr:149.6,p:5.87,w:202.6,cal:483,mhr:160,g:"roja",n:"Morning Run"},
       {id:-11,t:"Run",d:"2026-04-26",km:10.01,s:2706,el:13,hr:187.6,p:4.50,w:258.2,cal:618,mhr:206,g:"azul",n:"🏆 10K Race PR — 45:06"},
       {id:-10,t:"Run",d:"2026-04-26",km:1.51,s:628,el:8,hr:134.5,p:6.95,w:166.9,cal:89,mhr:152,g:"azul",n:"Warm-up race"},
@@ -545,6 +548,17 @@
 
       const now = new Date(); // Siempre usa la fecha real del sistema
 
+      // ── SEM ANT: rango lunes–domingo de la semana pasada ──────────
+      // ⚠️ NO ELIMINAR — bloque requerido por el filtro "SEM ANT"
+      const lastWeekDates = useMemo(() => {
+        const todayDow = now.getDay();
+        const daysToLastSun = todayDow === 0 ? 7 : todayDow;
+        const lastSun = new Date(now); lastSun.setDate(now.getDate() - daysToLastSun); lastSun.setHours(23,59,59,999);
+        const lastMon = new Date(lastSun); lastMon.setDate(lastSun.getDate() - 6); lastMon.setHours(0,0,0,0);
+        return { lastMon, lastSun };
+      }, []);
+      // ──────────────────────────────────────────────────────────────
+
       const data = useMemo(() => {
         return RAW.filter(a => {
           const d = new Date(a.d);
@@ -552,6 +566,7 @@
           if (period === "90d") return (now - d) / 864e5 <= 90;
           if (period === "ytd") return d.getFullYear() === 2026;
           if (period === "2025") return d.getFullYear() === 2025;
+          if (period === "lastweek") return d >= lastWeekDates.lastMon && d <= lastWeekDates.lastSun;
           return true;
         });
       }, [period]);
@@ -865,6 +880,216 @@
         );
       };
 
+      // ══════════════════════════════════════════════════════════════
+      // SEM ANT — RESUMEN SEMANA ANTERIOR
+      // ⚠️ NO ELIMINAR — este bloque es requerido por el filtro SEM ANT
+      // ══════════════════════════════════════════════════════════════
+      const PrevWeekSummary = () => {
+        const { lastMon, lastSun } = lastWeekDates;
+        const MONTHS = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+        const DAYS_ES = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
+        const weekLabel = `${lastMon.getDate()} – ${lastSun.getDate()} ${MONTHS[lastSun.getMonth()]} ${lastSun.getFullYear()}`;
+
+        const lwAll = RAW.filter(a => { const d = new Date(a.d); return d >= lastMon && d <= lastSun; });
+        const lwRuns = lwAll.filter(a => a.t === "Run" && a.km > 0);
+        const lwGym  = lwAll.filter(a => a.t === "WeightTraining");
+        const lwKm   = lwRuns.reduce((s,a) => s+a.km, 0);
+        const lwSec  = lwAll.reduce((s,a) => s+a.s, 0);
+        const lwCal  = lwAll.reduce((s,a) => s+(a.cal||0), 0);
+        const lwPR   = lwRuns.filter(a=>a.p>0&&a.p<10);
+        const lwHR   = lwRuns.filter(a=>a.hr>0);
+        const lwAvgPace = lwPR.length ? lwPR.reduce((s,a)=>s+a.p,0)/lwPR.length : 0;
+        const lwAvgHr   = lwHR.length ? lwHR.reduce((s,a)=>s+a.hr,0)/lwHR.length : 0;
+
+        const prev4 = [];
+        for (let wi=1;wi<=4;wi++) {
+          const ws=new Date(lastMon); ws.setDate(lastMon.getDate()-wi*7);
+          const we=new Date(ws); we.setDate(ws.getDate()+6); we.setHours(23,59,59,999);
+          const wr=RAW.filter(a=>{const ad=new Date(a.d);return a.t==="Run"&&a.km>0&&ad>=ws&&ad<=we;});
+          prev4.push(wr.reduce((s,a)=>s+a.km,0));
+        }
+        const avgWeeklyKm = prev4.reduce((s,v)=>s+v,0)/prev4.length;
+
+        const days = [];
+        for (let i=0;i<7;i++) {
+          const d=new Date(lastMon); d.setDate(lastMon.getDate()+i);
+          const key=d.toISOString().split("T")[0];
+          days.push({
+            date:key, dayName:DAYS_ES[d.getDay()], dayNum:`${d.getDate()}/${d.getMonth()+1}`,
+            acts:lwAll.filter(a=>a.d===key).sort((a,b)=>(b.t==="Run")-(a.t==="Run"))
+          });
+        }
+
+        const getRunType = (a) => {
+          if (!a.p||a.p<=0) return "Run";
+          if (a.km>=18) return "Long Run";
+          if (a.km>=12) return "Medio Largo";
+          if (a.p<5.2)  return "Velocidad/Intervalos";
+          if (a.p<5.6)  return "Tempo Run";
+          if (a.p<6.2)  return "Run Moderado";
+          return "Run Fácil";
+        };
+
+        const getNote = (a) => {
+          if (a.t==="WeightTraining") {
+            const m=Math.round(a.s/60);
+            if (m>60) return {e:"💪",note:"Sesión de fuerza completa. Excelente complemento al running.",tip:"Estira bien y mantén buena hidratación."};
+            if (m>30) return {e:"🏋️",note:"Sesión de fuerza moderada. Fortaleces la cadena posterior.",tip:"Enfócate en sentadillas y lunges para transferir al running."};
+            return {e:"⚡",note:"Activación o movilidad. Perfecto para recuperación activa.",tip:"Mejoran la economía de carrera."};
+          }
+          const zone=ATHLETE.hrZones.find(z=>a.hr>=z.min&&a.hr<z.max)||ATHLETE.hrZones[ATHLETE.hrZones.length-1];
+          const zN=a.hr>0?zone.name.split(" ")[0]:"";
+          if (a.km>=18) return {e:"🏆",note:`Long run ${fmt(a.km)}km a ${fmtPace(a.p)}/km. Adaptación aeróbica máxima.`,tip:a.hr>160?"48h de recuperación — esfuerzo alto.":"24h suave. Buen control."};
+          if (a.km>=12) return {e:"📏",note:`Medio largo ${fmt(a.km)}km en ${zN}. Construcción de base sólida.`,tip:a.hr>165?"HR algo alto — más Z2 en largos.":"Buen control cardíaco."};
+          if (a.p<5.2&&a.p>0) return {e:"🔥",note:`Sesión rápida a ${fmtPace(a.p)}/km. Estimula VO2max y velocidad.`,tip:"Recuperación activa al día siguiente."};
+          if (a.p<5.6&&a.p>0) return {e:"⚡",note:`Tempo run a ${fmtPace(a.p)}/km. Mejora umbral de lactato.`,tip:"Run fácil Z2 el próximo día."};
+          if (a.p>=6.2||(a.hr>0&&a.hr<155)) return {e:"🧘",note:`Run fácil a ${fmtPace(a.p)}/km en zona aeróbica baja.`,tip:"Este 80% fácil es la base del progreso."};
+          return {e:"🏃",note:`Run ${fmt(a.km)}km a ${fmtPace(a.p)}/km${a.hr>0?` · FC ${Math.round(a.hr)} bpm (${zN})`:""}`,tip:"La variedad de estímulos genera mejor adaptación."};
+        };
+
+        const easyRuns=lwRuns.filter(a=>a.p>=5.8||(a.hr>0&&a.hr<158));
+        const ratio=lwRuns.length>0?Math.round(easyRuns.length/lwRuns.length*100):0;
+        const coachNotes=[];
+
+        if (lwKm>40) coachNotes.push({i:"🏆",t:`Gran semana: ${fmt(lwKm)}km`,d:`Excelente volumen${avgWeeklyKm>0?`, ${lwKm>=avgWeeklyKm?"↑":"↓"} ${fmt(Math.abs((lwKm/avgWeeklyKm-1)*100),0)}% vs tu promedio de ${fmt(avgWeeklyKm)}km/sem`:""}.`});
+        else if (lwKm>25) coachNotes.push({i:"💪",t:`Buena semana: ${fmt(lwKm)}km`,d:`Volumen sólido${avgWeeklyKm>0?` (promedio: ${fmt(avgWeeklyKm)}km/sem)`:""}.`});
+        else if (lwKm>0) coachNotes.push({i:"📊",t:`Semana moderada: ${fmt(lwKm)}km`,d:`Por debajo del promedio${avgWeeklyKm>0?` (${fmt(avgWeeklyKm)}km/sem)`:""}.  Puede ser semana de descarga.`});
+        else coachNotes.push({i:"🌱",t:"Semana de descanso",d:"Sin carreras. El descanso es parte del entrenamiento."});
+
+        if (lwRuns.length>=3) {
+          if (ratio>=70) coachNotes.push({i:"✅",t:`Distribución correcta: ${ratio}% fácil`,d:"Excelente polarización 80/20. Entrenando como los élite."});
+          else coachNotes.push({i:"⚠️",t:`Intensidad alta: solo ${ratio}% fácil`,d:"Demasiados runs duros. La próxima semana prioriza Z2."});
+        }
+
+        const prRun=lwRuns.find(a=>a.n&&a.n.includes("PR"));
+        if (prRun) coachNotes.push({i:"🏅",t:"¡Récord personal esta semana!",d:`${prRun.n}. Tu entrenamiento está dando frutos.`});
+
+        if (lwGym.length>=2) coachNotes.push({i:"🏋️",t:`${lwGym.length} sesiones de fuerza`,d:"Excelente complemento. Fuerza previene lesiones y mejora economía de carrera."});
+        else if (lwGym.length===1) coachNotes.push({i:"💡",t:"1 sesión de gym",d:"Intenta llegar a 2-3 la próxima semana."});
+        else if (lwRuns.length>0) coachNotes.push({i:"🏋️",t:"Sin sesiones de gym",d:"Planifica 2 sesiones de fuerza. Sentadillas, lunges y plancha son clave."});
+
+        const nextKmTarget = lwKm>45 ? `~${fmt(lwKm*0.85)}km (descarga)` : `${fmt(lwKm*1.05)}–${fmt(lwKm*1.1)}km (+5-10%)`;
+        const nextRecs = [
+          `Objetivo de volumen: ${nextKmTarget}.`,
+          lwKm>40 ? "Máximo 1 sesión intensa. El resto en Z2 para asimilar la carga." : "Plan: 1 intervalos, 1 tempo, 1-2 fáciles, 1 long run.",
+          lwGym.length<2 ? "Agrega 2 sesiones de fuerza (30-45min)." : "Mantén 2-3 sesiones de gym.",
+          "7-8h de sueño, hidratación y proteína post-carrera."
+        ];
+
+        const statItems=[
+          {e:"📍",l:"Total km",v:`${fmt(lwKm)}km`,c:N.cyan},
+          {e:"🏃",l:"Runs",v:`${lwRuns.length}`,c:N.green},
+          {e:"🏋️",l:"Gym",v:`${lwGym.length}`,c:N.purple},
+          {e:"⏱️",l:"Tiempo",v:fmtTime(lwSec),c:N.blue},
+          {e:"⚡",l:"Pace prom.",v:fmtPace(lwAvgPace),c:N.orange},
+          {e:"❤️",l:"FC prom.",v:lwAvgHr>0?`${Math.round(lwAvgHr)} bpm`:"—",c:N.red},
+          {e:"🔥",l:"Calorías",v:`${lwCal} kcal`,c:"#facc15"},
+          {e:"📊",l:"vs promedio",v:avgWeeklyKm>0?(lwKm>=avgWeeklyKm?"↑":"↓")+` ${fmt(Math.abs((lwKm/avgWeeklyKm-1)*100),0)}%`:"—",c:lwKm>=avgWeeklyKm?N.green:N.red}
+        ];
+
+        return (
+          <div style={{display:"flex",flexDirection:"column",gap:20}}>
+            <div style={{background:"linear-gradient(135deg,rgba(99,102,241,0.12),rgba(168,85,247,0.08))",border:"1px solid rgba(99,102,241,0.25)",borderRadius:16,padding:20}}>
+              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:18}}>
+                <span style={{fontSize:26}}>📅</span>
+                <div>
+                  <h2 style={{fontSize:"1.1rem",fontWeight:800,color:"white"}}>Resumen Semana Anterior</h2>
+                  <p style={{fontSize:"0.75rem",color:"#9ca3af"}}>{weekLabel} · Lunes a Domingo</p>
+                </div>
+              </div>
+              <div className="metric-grid" style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10}}>
+                {statItems.map(({e,l,v,c})=>(
+                  <div key={l} style={{background:"rgba(255,255,255,0.03)",borderRadius:10,padding:12,border:`1px solid ${c}20`}}>
+                    <span style={{fontSize:13}}>{e}</span>
+                    <div style={{fontSize:"0.6rem",color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.05em",marginTop:4}}>{l}</div>
+                    <div style={{fontSize:"0.9rem",fontWeight:800,color:c,marginTop:2}}>{v}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div style={{background:"rgba(255,255,255,0.02)",borderRadius:16,padding:20,border:"1px solid rgba(255,255,255,0.06)"}}>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16}}>
+                <Icon type="calendar" size={14} color={N.blue}/>
+                <h3 style={{fontSize:"0.8rem",fontWeight:700,color:"#9ca3af",textTransform:"uppercase",letterSpacing:"0.05em"}}>Actividades del día</h3>
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:14}}>
+                {days.map(({date,dayName,dayNum,acts})=>(
+                  <div key={date} style={{borderLeft:`3px solid ${acts.some(a=>a.t==="Run")?N.cyan:acts.some(a=>a.t==="WeightTraining")?N.purple+"80":"rgba(255,255,255,0.08)"}`,paddingLeft:14}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:acts.length?8:0}}>
+                      <span style={{fontSize:"0.8rem",fontWeight:700,color:acts.length?"white":"#374151"}}>{dayName}</span>
+                      <span style={{fontSize:"0.65rem",color:"#6b7280"}}>{dayNum}</span>
+                      {acts.length===0&&<span style={{fontSize:"0.65rem",color:"#374151",fontStyle:"italic"}}>· Descanso</span>}
+                    </div>
+                    {acts.map((a,i)=>{
+                      const {e,note,tip}=getNote(a);
+                      const isRun=a.t==="Run";
+                      return (
+                        <div key={i} style={{display:"flex",gap:12,marginBottom:8,background:"rgba(255,255,255,0.02)",borderRadius:10,padding:"10px 12px",border:"1px solid rgba(255,255,255,0.04)"}}>
+                          <span style={{fontSize:20,flexShrink:0}}>{e}</span>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",marginBottom:4}}>
+                              {isRun?<span style={{fontSize:"0.6rem",fontWeight:700,color:N.cyan,background:"rgba(6,182,212,0.1)",padding:"2px 7px",borderRadius:4}}>{getRunType(a)}</span>
+                                    :<span style={{fontSize:"0.6rem",fontWeight:700,color:N.purple,background:"rgba(168,85,247,0.1)",padding:"2px 7px",borderRadius:4}}>{a.t==="WeightTraining"?"Fuerza":a.t}</span>}
+                              {a.n&&<span style={{fontSize:"0.65rem",color:"#9ca3af"}}>{a.n}</span>}
+                            </div>
+                            <div style={{display:"flex",gap:12,flexWrap:"wrap",marginBottom:5}}>
+                              {isRun&&a.km>0&&<span style={{fontSize:"0.75rem",color:"white",fontWeight:700}}>{fmt(a.km)} km</span>}
+                              {isRun&&a.p>0&&<span style={{fontSize:"0.7rem",color:"#9ca3af"}}>{fmtPace(a.p)}/km</span>}
+                              {a.hr>0&&<span style={{fontSize:"0.7rem",color:"#9ca3af"}}>FC {Math.round(a.hr)} bpm</span>}
+                              {a.s>0&&<span style={{fontSize:"0.7rem",color:"#9ca3af"}}>{fmtTime(a.s)}</span>}
+                              {a.cal>0&&<span style={{fontSize:"0.7rem",color:"#9ca3af"}}>{a.cal} kcal</span>}
+                            </div>
+                            <p style={{fontSize:"0.675rem",color:"#9ca3af",lineHeight:1.55,marginBottom:3}}>{note}</p>
+                            <p style={{fontSize:"0.65rem",color:N.green,fontStyle:"italic"}}>{tip}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div style={{background:"rgba(255,255,255,0.02)",borderRadius:16,padding:20,border:"1px solid rgba(6,182,212,0.15)"}}>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16}}>
+                <Icon type="sparkles" size={14} color={N.cyan}/>
+                <h3 style={{fontSize:"0.8rem",fontWeight:700,color:N.cyan,textTransform:"uppercase",letterSpacing:"0.05em"}}>Análisis del Coach</h3>
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                {coachNotes.map((n,idx)=>(
+                  <div key={idx} style={{display:"flex",gap:12,padding:"12px 14px",background:"rgba(255,255,255,0.02)",borderRadius:10,border:"1px solid rgba(255,255,255,0.05)"}}>
+                    <span style={{fontSize:20,flexShrink:0}}>{n.i}</span>
+                    <div>
+                      <p style={{fontSize:"0.78rem",fontWeight:700,color:"white",marginBottom:4}}>{n.t}</p>
+                      <p style={{fontSize:"0.675rem",color:"#9ca3af",lineHeight:1.55}}>{n.d}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div style={{background:"linear-gradient(135deg,rgba(16,185,129,0.08),rgba(6,182,212,0.05))",borderRadius:16,padding:20,border:"1px solid rgba(16,185,129,0.2)"}}>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
+                <Icon type="target" size={14} color={N.green}/>
+                <h3 style={{fontSize:"0.8rem",fontWeight:700,color:N.green,textTransform:"uppercase",letterSpacing:"0.05em"}}>Recomendaciones Próxima Semana</h3>
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:9}}>
+                {nextRecs.map((r,i)=>(
+                  <div key={i} style={{display:"flex",gap:8,alignItems:"flex-start"}}>
+                    <span style={{color:N.green,fontSize:"0.75rem",marginTop:1,flexShrink:0}}>→</span>
+                    <p style={{fontSize:"0.725rem",color:"#d1fae5",lineHeight:1.55}}>{r}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      };
+      // ══════════════════════════════════════════════════════════════
+      // FIN BLOQUE SEM ANT — ⚠️ NO ELIMINAR
+      // ══════════════════════════════════════════════════════════════
+
       const tabs = [
         {id:"daily",label:"Diario",icon:"calendar"},
         {id:"overview",label:"Overview",icon:"barChart"},
@@ -898,7 +1123,7 @@
               </div>
             </div>
             <div className="period-btns" style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-              {[["30d","30D"],["90d","90D"],["ytd","2026"],["2025","2025"],["all","ALL"]].map(([v,l])=>(
+              {[["30d","30D"],["90d","90D"],["ytd","2026"],["2025","2025"],["all","ALL"],["lastweek","SEM ANT"]].map(([v,l])=>(
                 <button key={v} onClick={()=>setPeriod(v)}
                   style={{padding:"8px 14px",borderRadius:8,fontSize:"0.75rem",fontWeight:700,letterSpacing:"0.05em",border:period===v?"1px solid rgba(255,255,255,0.2)":"1px solid transparent",background:period===v?"rgba(255,255,255,0.1)":"transparent",color:period===v?"white":"#6b7280",cursor:"pointer",transition:"all 0.2s"}}>
                   {l}
@@ -906,6 +1131,9 @@
               ))}
             </div>
           </div>
+
+          {/* SEM ANT — render especial sin tabs ⚠️ NO ELIMINAR */}
+          {period === "lastweek" ? <PrevWeekSummary /> : (<>
 
           {/* TABS */}
           <div className="scrollbar-hide tab-bar" style={{display:"flex",gap:4,marginBottom:24,overflowX:"auto",paddingBottom:8,WebkitOverflowScrolling:"touch"}}>
@@ -1687,7 +1915,7 @@
                   {[
                     {title:"Regla del 10%",text:`Tu volumen actual es ~${fmt(weeklyAgg.slice(-4).reduce((s,w)=>s+w.km,0)/4)}km/semana. No aumentes más de ${fmt(weeklyAgg.slice(-4).reduce((s,w)=>s+w.km,0)/4*0.1)}km la próxima semana.`,color:N.cyan},
                     {title:"Carreras fáciles",text:`${aerobicPct}% de tu entrenamiento es aeróbico. ${aerobicPct>=75?"Excelente polarización.":"Intenta que el 80% sea en Z2."}`,color:N.green},
-                    {title:"VO2max potencial",text:`Con VO2max de ${vo2max}, tu PR en 10K es 45:06 (4:30/km) del 26-Abr 🏆. Esta semana: recuperación activa — runs fáciles Z2 ≤6km, sin intensidad. Próximo objetivo: media maratón sub-1h40 con bloque de 6 semanas desde 5 de mayo.`,color:N.pink},
+                    {title:"VO2max potencial",text:`Con VO2max de ${vo2max}, tu PR en 10K es 45:06 (4:30/km) del 26-Abr 🏆. Semana 2 del bloque 21K en marcha — ejecuta el plan estructurado: fartlek suave el lunes, cambios de ritmo el miércoles, long run del sábado (14-16km en Z2). Objetivo: media maratón sub-1h40 el 25 de octubre.`,color:N.pink},
                     {title:"Recuperación",text:`Con ${weights.length} sesiones de gym, tu fuerza complementa el running. Mantén 2-3 sesiones/semana.`,color:N.orange}
                   ].map((rec,i)=>(
                     <div key={i} style={{display:"flex",alignItems:"flex-start",gap:12,background:"rgba(255,255,255,0.015)",borderRadius:12,padding:14,border:"1px solid rgba(255,255,255,0.03)"}}>
@@ -2131,6 +2359,7 @@
           <div style={{marginTop:40,textAlign:"center",paddingBottom:16}}>
             <p style={{fontSize:"0.625rem",color:"#374151"}}>Strava Analytics Dashboard · {ATHLETE.name} · Generado {new Date().toLocaleDateString("es")}</p>
           </div>
+          </>)}
         </div>
       );
     }
