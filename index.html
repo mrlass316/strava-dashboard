@@ -111,9 +111,12 @@
     };
 
     // ═══════════════════════════════════════════════════════════════
-    // STRAVA ACTIVITIES — actualizado 2026-04-29 (🏃 Morning Run 12km @ 5:12/km, HR 165/183 · 🏋️ 2 sesiones gym · Semana 1 plan 21K completada → inicio Semana 2)
+    // STRAVA ACTIVITIES — actualizado 2026-05-01 (🏃 Morning Run 10km @ 5:56/km, HR 150/161 · 🏋️ Upper Leg Workout · Semana 3 bloque 21K: ~30km semana sólida → long run sábado)
     // ═══════════════════════════════════════════════════════════════
     const RAW = [
+      {id:-18,t:"Run",d:"2026-05-01",km:10.02,s:3567,el:21,hr:150.1,p:5.93,w:201.1,cal:606,mhr:161,g:"azul",n:"Morning Run"},
+      {id:-17,t:"WeightTraining",d:"2026-04-30",km:0,s:7610,el:0,hr:0,p:0,w:0,cal:0,n:"Upper Leg Workout"},
+      {id:-16,t:"WeightTraining",d:"2026-04-30",km:0,s:7610,el:0,hr:0,p:0,w:0,cal:0,n:"Ejercicios de fuerza"},
       {id:-15,t:"WeightTraining",d:"2026-04-29",km:0,s:3600,el:0,hr:0,p:0,w:0,cal:0,n:"Back & Triceps"},
       {id:-14,t:"WeightTraining",d:"2026-04-29",km:0,s:3600,el:0,hr:0,p:0,w:0,cal:0,n:"Ejercicios de fuerza"},
       {id:-13,t:"Run",d:"2026-04-29",km:12.02,s:3757,el:28,hr:165.0,p:5.20,w:228.7,cal:738,mhr:183,g:"azul",n:"Morning Run"},
@@ -1915,7 +1918,7 @@
                   {[
                     {title:"Regla del 10%",text:`Tu volumen actual es ~${fmt(weeklyAgg.slice(-4).reduce((s,w)=>s+w.km,0)/4)}km/semana. No aumentes más de ${fmt(weeklyAgg.slice(-4).reduce((s,w)=>s+w.km,0)/4*0.1)}km la próxima semana.`,color:N.cyan},
                     {title:"Carreras fáciles",text:`${aerobicPct}% de tu entrenamiento es aeróbico. ${aerobicPct>=75?"Excelente polarización.":"Intenta que el 80% sea en Z2."}`,color:N.green},
-                    {title:"VO2max potencial",text:`Con VO2max de ${vo2max}, tu PR en 10K es 45:06 (4:30/km) del 26-Abr 🏆. Semana 2 del bloque 21K en marcha — ejecuta el plan estructurado: fartlek suave el lunes, cambios de ritmo el miércoles, long run del sábado (14-16km en Z2). Objetivo: media maratón sub-1h40 el 25 de octubre.`,color:N.pink},
+                    {title:"VO2max potencial",text:`Con VO2max de ${vo2max}, tu PR en 10K es 45:06 (4:30/km) del 26-Abr 🏆. Semana 3 del bloque 21K: 8km Z2 el lun, tempo 12km el mar, gym piernas el jue, 10km Z2 hoy — semana sólida ~30km ✅. Próximo objetivo: long run 16-18km en Z2 (6:00-6:15/km) el sábado. Objetivo: media maratón sub-1h40 el 25 de octubre.`,color:N.pink},
                     {title:"Recuperación",text:`Con ${weights.length} sesiones de gym, tu fuerza complementa el running. Mantén 2-3 sesiones/semana.`,color:N.orange}
                   ].map((rec,i)=>(
                     <div key={i} style={{display:"flex",alignItems:"flex-start",gap:12,background:"rgba(255,255,255,0.015)",borderRadius:12,padding:14,border:"1px solid rgba(255,255,255,0.03)"}}>
