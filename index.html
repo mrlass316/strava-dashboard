@@ -561,9 +561,12 @@
 
       // ── SEM ANT: rango lunes–domingo de la semana pasada ──────────
       // ⚠️ NO ELIMINAR — bloque requerido por el filtro "SEM ANT"
+      // Semántica: muestra el último bloque Mon–Sun completado.
+      //   Domingo (0): hoy ES el último Sun → semana Mon–Sun terminando hoy.
+      //   Lun-Sáb (1–6): el último Sun fue hace todayDow días.
       const lastWeekDates = useMemo(() => {
         const todayDow = now.getDay();
-        const daysToLastSun = todayDow === 0 ? 7 : todayDow;
+        const daysToLastSun = todayDow; // 0 en domingo, 1-6 lun-sáb
         const lastSun = new Date(now); lastSun.setDate(now.getDate() - daysToLastSun); lastSun.setHours(23,59,59,999);
         const lastMon = new Date(lastSun); lastMon.setDate(lastSun.getDate() - 6); lastMon.setHours(0,0,0,0);
         return { lastMon, lastSun };
