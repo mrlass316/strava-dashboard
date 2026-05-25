@@ -575,6 +575,12 @@
       // Semántica: muestra el último bloque Mon–Sun completado.
       //   Domingo (0): hoy ES el último Sun → semana Mon–Sun terminando hoy.
       //   Lun-Sáb (1–6): el último Sun fue hace todayDow días.
+      // ⚠️ parseLocalDate: parsea "YYYY-MM-DD" como medianoche LOCAL (no UTC)
+      // — sin esto, en UTC-4 el lunes se cae fuera del rango por timezone.
+      const parseLocalDate = (s) => {
+        const [y,m,d] = s.split("-").map(Number);
+        return new Date(y, m-1, d);
+      };
       const lastWeekDates = useMemo(() => {
         const todayDow = now.getDay();
         const daysToLastSun = todayDow; // 0 en domingo, 1-6 lun-sáb
@@ -591,7 +597,7 @@
           if (period === "90d") return (now - d) / 864e5 <= 90;
           if (period === "ytd") return d.getFullYear() === 2026;
           if (period === "2025") return d.getFullYear() === 2025;
-          if (period === "lastweek") return d >= lastWeekDates.lastMon && d <= lastWeekDates.lastSun;
+          if (period === "lastweek") { const dl = parseLocalDate(a.d); return dl >= lastWeekDates.lastMon && dl <= lastWeekDates.lastSun; }
           return true;
         });
       }, [period]);
@@ -915,7 +921,7 @@
         const DAYS_ES = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
         const weekLabel = `${lastMon.getDate()} – ${lastSun.getDate()} ${MONTHS[lastSun.getMonth()]} ${lastSun.getFullYear()}`;
 
-        const lwAll = RAW.filter(a => { const d = new Date(a.d); return d >= lastMon && d <= lastSun; });
+        const lwAll = RAW.filter(a => { const d = parseLocalDate(a.d); return d >= lastMon && d <= lastSun; });
         const lwRuns = lwAll.filter(a => a.t === "Run" && a.km > 0);
         const lwGym  = lwAll.filter(a => a.t === "WeightTraining");
         const lwKm   = lwRuns.reduce((s,a) => s+a.km, 0);
@@ -930,7 +936,7 @@
         for (let wi=1;wi<=4;wi++) {
           const ws=new Date(lastMon); ws.setDate(lastMon.getDate()-wi*7);
           const we=new Date(ws); we.setDate(ws.getDate()+6); we.setHours(23,59,59,999);
-          const wr=RAW.filter(a=>{const ad=new Date(a.d);return a.t==="Run"&&a.km>0&&ad>=ws&&ad<=we;});
+          const wr=RAW.filter(a=>{const ad=parseLocalDate(a.d);return a.t==="Run"&&a.km>0&&ad>=ws&&ad<=we;});
           prev4.push(wr.reduce((s,a)=>s+a.km,0));
         }
         const avgWeeklyKm = prev4.reduce((s,v)=>s+v,0)/prev4.length;
