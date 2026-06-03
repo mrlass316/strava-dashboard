@@ -6,7 +6,7 @@
 # Crontab: se puede programar para ejecutar diariamente
 
 # ──── CONFIGURACIÓN ────
-REPO_DIR="/Users/luisalgenissanchez/Documents/Claude/Salud/TrainingPeaks/Algenis/netlify-deploy"
+REPO_DIR="/Users/luisalgenissanchez/Documents/Claude/Salud/TrainingPeaks/01.AlgenisSanchez/netlify-deploy"
 # ───────────────────────
 
 TIMESTAMP=$(date "+%Y-%m-%d %H:%M")
