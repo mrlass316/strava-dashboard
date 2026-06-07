@@ -103,18 +103,26 @@
         "21K": { time: 6582, date: "2026-03-08", pace: "5:11/km" },
         "30K": { time: 11898, date: "2025-09-06", pace: "6:36/km" }
       },
-      allTimeKm: 10258, allTimeRuns: 1034, allTimeHours: 1090,
+      allTimeKm: 10463, allTimeRuns: 1050, allTimeHours: 1110,
       shoes: [
-        { name: "ASICS Nimbus El mar azul", km: 307, maxKm: 700, color: "#3b82f6", icon: "🔵", firstUse: "2026-03-08", lastUse: "2026-05-09" },
-        { name: "ASICS Nimbus La llama roja", km: 542, maxKm: 700, color: "#ef4444", icon: "🔴", firstUse: "2025-09-06", lastUse: "2026-05-08" }
+        { name: "ASICS Nimbus El mar azul", km: 411, maxKm: 700, color: "#3b82f6", icon: "🔵", firstUse: "2026-03-08", lastUse: "2026-06-06" },
+        { name: "ASICS Nimbus La llama roja", km: 626, maxKm: 700, color: "#ef4444", icon: "🔴", firstUse: "2025-09-06", lastUse: "2026-06-04" }
       ]
     };
 
     // ═══════════════════════════════════════════════════════════════
-    // STRAVA ACTIVITIES — actualizado 2026-06-02 (📊 Sem May 25–31: 21.0km en 2 runs + 1 gym · Lun 10km recuperación @ 6:00/km HR 158 (post-5K) · Mié Cuestas 6x500m ~11km @ 6:17/km HR 156 (VO2max) + sesión de fuerza 1h · ✅ Semana de calidad: recuperación + cuestas; volumen bajo planificado tras bloque 5K · ⚠️ HR de recuperación algo alto (target <135) — controlar ritmo en días fáciles · 🎯 Sem actual (S8): Lun ✅ Intervalos 6x1000m 14.4km @ 5:36/km HR 168 — gran arranque; sumar tempo + long run, mantener 2 días de fuerza)
+    // STRAVA ACTIVITIES — actualizado 2026-06-07 (📊 S8 Jun 1–7: 61.5km en 4 runs + 3 gym · Lun Intervalos 6x1000m 14.4km @5:36 HR168 · Mié Tempo 12km @5:22 HR164 · Jue Morning 10km @5:39 HR159 · Sáb Long Run 25km @6:11 HR159 · ✅ Semana excepcional: máximo volumen 2026 con calidad integrada (speed+tempo+long run) · ✅ Long Run Z2 limpio: HR159 a 6:11/km · ✅ S7 completada: May29 Rec 11km + May30 Fondo 21km añadidos (S7 total ~52km) · ⚠️ S9 descarga obligatoria: target 40-45km max · 🎯 S9 Jun 8-14: Lun Recovery 8-10km Z1 · Mié 5x1km @ umbral · Sáb Long 18-20km Z2 · 2 gym mín)
     // ═══════════════════════════════════════════════════════════════
     const RAW = [
+      {id:-46,t:"Run",d:"2026-06-06",km:25.09,s:9318,el:107,hr:159.2,p:6.18,w:194.3,cal:1565,mhr:176,g:"azul",n:"S8 Sáb — Long Run 25km Z2 @ 6:11/km"},
+      {id:-45,t:"WeightTraining",d:"2026-06-05",km:0,s:3944,el:0,hr:0,p:0,w:0,cal:0,n:"Ejercicios de fuerza"},
+      {id:-44,t:"Run",d:"2026-06-04",km:10.02,s:3399,el:21,hr:159,p:5.65,w:210.9,cal:609,mhr:177,g:"roja",n:"S8 Jue — Morning Run 10km"},
+      {id:-43,t:"WeightTraining",d:"2026-06-03",km:0,s:3251,el:0,hr:121.7,p:0,w:0,cal:0,mhr:144,n:"Ejercicios de fuerza"},
+      {id:-42,t:"Run",d:"2026-06-03",km:12.02,s:3873,el:20,hr:164.2,p:5.37,w:222.7,cal:742,mhr:183,g:"azul",n:"S8 Mié — Tempo progresivo 12km @ 5:22/km"},
+      {id:-41,t:"WeightTraining",d:"2026-06-02",km:0,s:3467,el:0,hr:0,p:0,w:0,cal:0,n:"Upper Leg & Shoulders (29,986 lbs)"},
       {id:-40,t:"Run",d:"2026-06-01",km:14.41,s:4833,el:0,hr:168,p:5.59,w:213,cal:1044,g:"roja",n:"S8 Lun — Intervalos 6x1000m @ ~4:23/km"},
+      {id:-48,t:"Run",d:"2026-05-30",km:20.01,s:7676,el:56,hr:168.2,p:6.40,w:187.4,cal:1341,mhr:191,g:"azul",n:"S7 Sáb — Fondo constante 21km @ 6:24/km"},
+      {id:-47,t:"Run",d:"2026-05-29",km:11.02,s:3948,el:20,hr:154.3,p:5.97,w:199.9,cal:672,mhr:179,g:"roja",n:"S7 Vie — Recuperación 11km @ 5:58/km"},
       {id:-38,t:"Run",d:"2026-05-27",km:11.00,s:4074,el:77,hr:156,p:6.17,w:202,cal:821,g:"roja",n:"S7 Mié — Cuestas 6x500m (VO2max)"},
       {id:-39,t:"WeightTraining",d:"2026-05-27",km:0,s:3643,el:0,hr:121,p:0,w:0,cal:461,n:"Sesión de fuerza / gym"},
       {id:-37,t:"Run",d:"2026-05-25",km:10.02,s:3607,el:0,hr:158,p:6.00,w:200,cal:695,g:"roja",n:"S7 Lun — Recuperación activa 10km Z1-Z2"},
