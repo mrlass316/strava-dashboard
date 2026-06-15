@@ -1,0 +1,103 @@
+{
+  "athlete": {
+    "id": "lissette",
+    "name": "Lissette Alberto",
+    "initials": "LA",
+    "goal": "Boston 2027",
+    "goal_label": "Boston Marathon — Abr 21, 2027",
+    "level": "Avanzada",
+    "phase": 1,
+    "phase_name": "Rebuild Post-BQ",
+    "phase_week": 4,
+    "phase_total_weeks": 6,
+    "total_plan_weeks": 46
+  },
+  "coach_note": {
+    "date": "2026-06-15",
+    "week_label": "S4 · Jun 15–21",
+    "title": "Hills ✅ — los 800m te esperan el miércoles",
+    "message": "Las 8 subidas de hoy son la base de potencia para el miércoles. Los 800m llegan por primera vez en este ciclo — sal conservador los primeros 2 reps (4:50-4:55/km) y acelera en los últimos 2-3. Tu TSB está en -5, que es exactamente donde debe estar en semana de carga. El sábado: 20km Z2 constante, sin apresurarte. La base se construye sábado a sábado.",
+    "focus": "5×800m miércoles + 20km sábado",
+    "emoji": "⛰️"
+  },
+  "stats": {
+    "ctl": 60.1,
+    "tsb": -5.2,
+    "monthly_km": 188,
+    "consistency_pct": 90
+  },
+  "current_week": {
+    "start": "2026-06-15",
+    "end": "2026-06-21",
+    "sessions": [
+      {
+        "date": "2026-06-15",
+        "title": "Hills — 8 subidas cortas 12km",
+        "description": "4km calentamiento Z2 → 8 subidas cortas (<200m) → completar hasta 12km",
+        "type": "completed",
+        "sport_type": "run",
+        "distance_planned_km": 12,
+        "distance_actual_km": 12.1,
+        "tss": 79.26
+      },
+      {
+        "date": "2026-06-16",
+        "title": "Fuerza A — Tren inferior",
+        "description": "Sentadillas, lunges, hip hinge, puente de glúteo · 45 min",
+        "type": "planned",
+        "sport_type": "strength",
+        "distance_planned_km": 0
+      },
+      {
+        "date": "2026-06-17",
+        "title": "Intervalos 800m — 12km",
+        "description": "3km WU · 5×800m @4:40-4:50/km · 300m recuperación · 2km CD",
+        "type": "planned",
+        "sport_type": "run",
+        "distance_planned_km": 12
+      },
+      {
+        "date": "2026-06-18",
+        "title": "Fuerza B — Core + Funcional",
+        "description": "Plancha, dead bug, bird dog, pallof press · 40 min",
+        "type": "planned",
+        "sport_type": "strength",
+        "distance_planned_km": 0
+      },
+      {
+        "date": "2026-06-19",
+        "title": "Easy + Strides — 10km",
+        "description": "10km Z2 cómodo (5:55-6:10/km) + 4×100m zancadas al final",
+        "type": "planned",
+        "sport_type": "run",
+        "distance_planned_km": 10
+      },
+      {
+        "date": "2026-06-20",
+        "title": "Long Run — 20km Z2",
+        "description": "20km aeróbico constante (6:00-6:15/km) · gel km 12 · FC < 160",
+        "type": "planned",
+        "sport_type": "run",
+        "distance_planned_km": 20
+      }
+    ]
+  },
+  "recent_activities": [
+    {"date":"2026-06-15","title":"Hills — 8 subidas cortas 12km","sport_type":"run","distance_actual_km":12.1,"duration_actual":1.235,"tss":79.26},
+    {"date":"2026-06-14","title":"Long Run — 20km Z2","sport_type":"run","distance_actual_km":20.34,"duration_actual":1.93,"tss":142.47},
+    {"date":"2026-06-12","title":"Easy + Strides — 10km","sport_type":"run","distance_actual_km":10.02,"duration_actual":0.974,"tss":67.63},
+    {"date":"2026-06-10","title":"Intervalos 600m — 12km","sport_type":"run","distance_actual_km":12.04,"duration_actual":1.131,"tss":84.35},
+    {"date":"2026-06-09","title":"Hills — 8 subidas 12km","sport_type":"run","distance_actual_km":10.11,"duration_actual":0.998,"tss":67.56},
+    {"date":"2026-06-06","title":"Long Run — 18km Z2","sport_type":"run","distance_actual_km":16.20,"duration_actual":1.63,"tss":102.11},
+    {"date":"2026-06-05","title":"Easy + Strides — 12km","sport_type":"run","distance_actual_km":12.12,"duration_actual":1.235,"tss":79.64},
+    {"date":"2026-06-03","title":"Intervalos 400m — 12km","sport_type":"run","distance_actual_km":12.08,"duration_actual":1.131,"tss":87.55},
+    {"date":"2026-05-30","title":"Long Run — 20km Z2","sport_type":"run","distance_actual_km":20.03,"duration_actual":2.0,"tss":129.44},
+    {"date":"2026-05-29","title":"Easy — 10km Z2","sport_type":"run","distance_actual_km":10.29,"duration_actual":1.0,"tss":64.85}
+  ],
+  "milestones": [
+    {"label":"BQ — 3:24:49","value":"Maratón Abr 2026","date":"Abr 20, 2026","done":true},
+    {"label":"Rebuild iniciado","value":"Fase 1 arrancada","date":"May 27, 2026","done":true},
+    {"label":"Fase 1 completa","value":"6 semanas base","date":"Jul 5, 2026","done":false},
+    {"label":"Boston Marathon 2027","value":"Meta final","date":"Abr 21, 2027","done":false}
+  ]
+}
