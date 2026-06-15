@@ -1,0 +1,166 @@
+{
+  "athlete": {
+    "id": "luis",
+    "name": "Luis Sánchez",
+    "initials": "LS",
+    "goal": "Evento 40K",
+    "goal_label": "Evento 40K — Jul 2026",
+    "level": "Avanzado",
+    "phase": 4,
+    "phase_name": "Pico de Carga",
+    "phase_week": 1,
+    "phase_total_weeks": 3,
+    "total_plan_weeks": 14
+  },
+  "coach_note": {
+    "date": "2026-06-15",
+    "week_label": "S10 · Jun 15–21",
+    "title": "27km ✅ + Tempo MP hoy ✅ — el 30km te espera el sábado",
+    "message": "La semana pasada cerraste 27km a ritmo constante — territorio nuevo. Hoy el tempo a ritmo maratón estuvo en zona: 14km a paso específico, sin exceso. Tu TSB está en -18, que es exactamente donde debe estar en la semana de pico máximo. El miércoles: calidad controlada. El viernes: easy puro. El sábado: 30km por primera vez en tu vida. Ese fondo es el punto más alto de todo el plan. Después de ahí, el cuerpo descansa y llegas al 40K con todo.",
+    "focus": "30km el sábado — primer 30 de tu vida",
+    "emoji": "🏔️"
+  },
+  "stats": {
+    "ctl": 85.2,
+    "tsb": -17.8,
+    "monthly_km": 251,
+    "consistency_pct": 94
+  },
+  "current_week": {
+    "start": "2026-06-15",
+    "end": "2026-06-21",
+    "sessions": [
+      {
+        "date": "2026-06-15",
+        "title": "S10 Lun — Tempo MP 14km",
+        "description": "3km WU · 8km @5:25-5:40/km Z3 (MP) · 3km CD",
+        "type": "completed",
+        "sport_type": "run",
+        "distance_planned_km": 14,
+        "distance_actual_km": 14.02,
+        "tss": 127.06
+      },
+      {
+        "date": "2026-06-16",
+        "title": "Fuerza — Cadena posterior",
+        "description": "Hip thrusts · Sentadilla búlgara · RDL · Core · 45 min",
+        "type": "planned",
+        "sport_type": "strength",
+        "distance_planned_km": 0
+      },
+      {
+        "date": "2026-06-18",
+        "title": "S10 Mié — Intervalos 5×1200m",
+        "description": "3km WU · 5×1200m @4:20-4:30/km · 400m rec · 3km CD",
+        "type": "planned",
+        "sport_type": "run",
+        "distance_planned_km": 14
+      },
+      {
+        "date": "2026-06-19",
+        "title": "S10 Vie — Easy run 10km",
+        "description": "10km Z1-Z2 fácil · FC < 140 · Prepara el 30km del sábado",
+        "type": "planned",
+        "sport_type": "run",
+        "distance_planned_km": 10
+      },
+      {
+        "date": "2026-06-21",
+        "title": "S10 Sáb — FONDO 30km 🏔️",
+        "description": "3km WU · 24km Z2 (5:30-5:40/km) · 3km CD · Gel km 10, 17, 23",
+        "type": "planned",
+        "sport_type": "run",
+        "distance_planned_km": 30
+      }
+    ]
+  },
+  "recent_activities": [
+    {
+      "date": "2026-06-15",
+      "title": "S10 Lun — Tempo MP 14km",
+      "sport_type": "run",
+      "distance_actual_km": 14.02,
+      "duration_actual": 1.343,
+      "tss": 127.06
+    },
+    {
+      "date": "2026-06-13",
+      "title": "S9 Sáb — Fondo 27km Z2",
+      "sport_type": "run",
+      "distance_actual_km": 27.02,
+      "duration_actual": 2.813,
+      "tss": 217.84
+    },
+    {
+      "date": "2026-06-12",
+      "title": "S9 Vie — Easy run 10km",
+      "sport_type": "run",
+      "distance_actual_km": 10.01,
+      "duration_actual": 0.977,
+      "tss": 84.98
+    },
+    {
+      "date": "2026-06-10",
+      "title": "S9 Mié — Tempo continuo 14km",
+      "sport_type": "run",
+      "distance_actual_km": 14.01,
+      "duration_actual": 1.271,
+      "tss": 136.8
+    },
+    {
+      "date": "2026-06-08",
+      "title": "S9 Lun — Fartlek largo 13km",
+      "sport_type": "run",
+      "distance_actual_km": 13.02,
+      "duration_actual": 1.181,
+      "tss": 120.25
+    },
+    {
+      "date": "2026-06-06",
+      "title": "S8 Sáb — Fondo 25km Z2",
+      "sport_type": "run",
+      "distance_actual_km": 25.08,
+      "duration_actual": 2.596,
+      "tss": 204.32
+    },
+    {
+      "date": "2026-06-04",
+      "title": "S8 Vie — Easy run 10km",
+      "sport_type": "run",
+      "distance_actual_km": 10.02,
+      "duration_actual": 0.945,
+      "tss": 87.55
+    },
+    {
+      "date": "2026-06-03",
+      "title": "S8 Mié — Tempo progresivo 12km",
+      "sport_type": "run",
+      "distance_actual_km": 12.02,
+      "duration_actual": 1.118,
+      "tss": 112.76
+    },
+    {
+      "date": "2026-06-01",
+      "title": "S8 Lun — Intervalos 6×1000m",
+      "sport_type": "run",
+      "distance_actual_km": 14.41,
+      "duration_actual": 1.342,
+      "tss": 131.92
+    },
+    {
+      "date": "2026-05-30",
+      "title": "S7 Sáb — Fondo 20km Z2",
+      "sport_type": "run",
+      "distance_actual_km": 20.01,
+      "duration_actual": 2.132,
+      "tss": 160.28
+    }
+  ],
+  "milestones": [
+    { "label": "PR 10K — 45:06", "value": "Carrera oficial", "date": "Abr 26, 2026", "done": true },
+    { "label": "PR 21K — 1:49:22", "value": "Carrera oficial", "date": "Mar 8, 2026", "done": true },
+    { "label": "Fondo 27km", "value": "Récord personal fondo", "date": "Jun 13, 2026", "done": true },
+    { "label": "Fondo 30km", "value": "Primer 30km de tu vida", "date": "Jun 21, 2026", "done": false },
+    { "label": "Evento 40K", "value": "Meta del ciclo", "date": "Jul 2026", "done": false }
+  ]
+}
