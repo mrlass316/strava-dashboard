@@ -6,22 +6,22 @@
   <meta name="theme-color" content="#0a0a0f"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-  <meta name="apple-mobile-web-app-title" content="Strava Dashboard"/>
-  <meta name="description" content="Dashboard de entrenamiento de Luis Sánchez — Running, Fitness, Coaching y más"/>
-  <meta property="og:title" content="Strava Dashboard · Luis Sánchez"/>
+  <meta name="apple-mobile-web-app-title" content="RUNIA Dashboard"/>
+  <meta name="description" content="Dashboard de entrenamiento RUNIA — Running, Fitness, Coaching y más. Corre con inteligencia."/>
+  <meta property="og:title" content="RUNIA Dashboard · Luis Sánchez"/>
   <meta property="og:description" content="Analytics de running con coaching inteligente"/>
   <meta property="og:type" content="website"/>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏃</text></svg>"/>
   <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏃</text></svg>"/>
   <link rel="manifest" href="manifest.json"/>
-  <title>Strava Dashboard · Luis Sánchez</title>
+  <title>RUNIA Dashboard · Luis Sánchez</title>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/prop-types@15/prop-types.min.js"></script>
   <script crossorigin src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
   <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet"/>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Inter', system-ui, sans-serif; background: linear-gradient(135deg, #0a0a0f 0%, #0d1117 50%, #0a0f1a 100%); min-height: 100vh; }
@@ -545,7 +545,7 @@
     const fmtPace = (p) => { if (!p || p <= 0 || p > 15) return "\u2014"; const m = Math.floor(p); const ss = Math.round((p-m)*60); return `${m}:${String(ss).padStart(2,'0')}`; };
     const getMonthKey = (d) => d.substring(0,7);
     const MONTHS = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
-    const N = { cyan:"#06b6d4", purple:"#a855f7", green:"#10b981", orange:"#f97316", pink:"#ec4899", yellow:"#eab308", red:"#ef4444", blue:"#3b82f6", lime:"#84cc16" };
+    const N = { cyan:"#FF4F4D", purple:"#6E47FF", green:"#00C896", orange:"#FFD23F", pink:"#FF4F4D", yellow:"#FFD23F", red:"#ef4444", blue:"#6E47FF", lime:"#00C896" };
 
     // ═══════════════════════════════════════════════════════════════
     // ICONS (SVG inline since we can't use lucide in HTML)
@@ -860,7 +860,7 @@
             {iconType && <div className="p-1.5 rounded-lg" style={{background:`${color}18`}}><Icon type={iconType} size={14} color={color}/></div>}
             <span style={{color:"#9ca3af",fontSize:"0.75rem"}}>{label}</span>
           </div>
-          <p className={`font-bold text-white ${large?"text-3xl":"text-xl"}`}>{value}</p>
+          <p className={`font-bold text-white ${large?"text-3xl":"text-xl"}`} style={{fontFamily:"'JetBrains Mono',monospace"}}>{value}</p>
           {sub && <p style={{fontSize:"0.625rem",color:"#6b7280",marginTop:2}}>{sub}</p>}
         </Card>
       );
@@ -887,7 +887,7 @@
           </div>
           <div style={{borderTop:"1px solid rgba(255,255,255,0.05)",paddingTop:8}}>
             <p style={{fontSize:"0.625rem",color:"#6b7280",marginBottom:2}}>PRÓXIMA SEMANA</p>
-            <p style={{fontSize:"0.7rem",color:N.green,fontWeight:600}}>{action}</p>
+            <p style={{fontSize:"0.7rem",color:N.cyan,fontWeight:600,fontFamily:"'JetBrains Mono',monospace"}}>{action}</p>
           </div>
         </div>
       );
@@ -1083,8 +1083,8 @@
                               {a.n&&<span style={{fontSize:"0.65rem",color:"#9ca3af"}}>{a.n}</span>}
                             </div>
                             <div style={{display:"flex",gap:12,flexWrap:"wrap",marginBottom:5}}>
-                              {isRun&&a.km>0&&<span style={{fontSize:"0.75rem",color:"white",fontWeight:700}}>{fmt(a.km)} km</span>}
-                              {isRun&&a.p>0&&<span style={{fontSize:"0.7rem",color:"#9ca3af"}}>{fmtPace(a.p)}/km</span>}
+                              {isRun&&a.km>0&&<span style={{fontSize:"0.75rem",color:"white",fontWeight:700,fontFamily:"'JetBrains Mono',monospace"}}>{fmt(a.km)} km</span>}
+                              {isRun&&a.p>0&&<span style={{fontSize:"0.7rem",color:"#9ca3af",fontFamily:"'JetBrains Mono',monospace"}}>{fmtPace(a.p)}/km</span>}
                               {a.hr>0&&<span style={{fontSize:"0.7rem",color:"#9ca3af"}}>FC {Math.round(a.hr)} bpm</span>}
                               {a.s>0&&<span style={{fontSize:"0.7rem",color:"#9ca3af"}}>{fmtTime(a.s)}</span>}
                               {a.cal>0&&<span style={{fontSize:"0.7rem",color:"#9ca3af"}}>{a.cal} kcal</span>}
@@ -1103,7 +1103,7 @@
             <div style={{background:"rgba(255,255,255,0.02)",borderRadius:16,padding:20,border:"1px solid rgba(6,182,212,0.15)"}}>
               <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16}}>
                 <Icon type="sparkles" size={14} color={N.cyan}/>
-                <h3 style={{fontSize:"0.8rem",fontWeight:700,color:N.cyan,textTransform:"uppercase",letterSpacing:"0.05em"}}>Análisis del Coach</h3>
+                <h3 style={{fontSize:"0.8rem",fontWeight:700,color:N.cyan,textTransform:"uppercase",letterSpacing:"0.05em"}}>Análisis RUNIA</h3>
               </div>
               <div style={{display:"flex",flexDirection:"column",gap:10}}>
                 {coachNotes.map((n,idx)=>(
@@ -1121,7 +1121,7 @@
             <div style={{background:"linear-gradient(135deg,rgba(16,185,129,0.08),rgba(6,182,212,0.05))",borderRadius:16,padding:20,border:"1px solid rgba(16,185,129,0.2)"}}>
               <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
                 <Icon type="target" size={14} color={N.green}/>
-                <h3 style={{fontSize:"0.8rem",fontWeight:700,color:N.green,textTransform:"uppercase",letterSpacing:"0.05em"}}>Recomendaciones Próxima Semana</h3>
+                <h3 style={{fontSize:"0.8rem",fontWeight:700,color:N.green,textTransform:"uppercase",letterSpacing:"0.05em"}}>Plan RUNIA — Próxima Semana</h3>
               </div>
               <div style={{display:"flex",flexDirection:"column",gap:9}}>
                 {nextRecs.map((r,i)=>(
@@ -1160,13 +1160,15 @@
           <div className="header-wrap" style={{display:"flex",flexWrap:"wrap",alignItems:"center",justifyContent:"space-between",marginBottom:24,gap:16}}>
             <div style={{display:"flex",alignItems:"center",gap:16}}>
               <div style={{position:"relative"}}>
-                <div style={{position:"absolute",inset:0,borderRadius:16,background:"linear-gradient(135deg,#06b6d4,#a855f7)",filter:"blur(16px)",opacity:0.5}}/>
-                <div style={{position:"relative",width:48,height:48,borderRadius:14,background:"linear-gradient(135deg,#06b6d4,#a855f7)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,fontWeight:900,color:"white"}}>LS</div>
+                <div style={{position:"absolute",inset:0,borderRadius:16,background:"linear-gradient(135deg,#FF4F4D,#6E47FF)",filter:"blur(16px)",opacity:0.5}}/>
+                <div style={{position:"relative",width:48,height:48,borderRadius:14,background:"linear-gradient(135deg,#0A0A0A,#1a0a0a)",border:"1.5px solid rgba(255,79,77,0.4)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900,color:"white",fontSize:13,letterSpacing:"-0.02em",fontFamily:"'Inter',sans-serif"}}>
+                  <span>RUN</span><span style={{color:"#FF4F4D"}}>I</span><span style={{color:"#6E47FF"}}>A</span>
+                </div>
               </div>
               <div>
-                <h1 className="title-name" style={{fontSize:"1.5rem",fontWeight:900,letterSpacing:"-0.025em",background:"linear-gradient(135deg,#06b6d4,#a855f7,#ec4899)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>{ATHLETE.name}</h1>
+                <h1 className="title-name" style={{fontSize:"1.5rem",fontWeight:900,letterSpacing:"-0.025em",background:"linear-gradient(135deg,#FF4F4D,#6E47FF)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>{ATHLETE.name}</h1>
                 <div style={{display:"flex",alignItems:"center",gap:8,marginTop:2,flexWrap:"wrap"}}>
-                  <span style={{color:"#6b7280",fontSize:"0.75rem"}}>{ATHLETE.weight}kg · Strava desde {ATHLETE.joined}</span>
+                  <span style={{color:"#737380",fontSize:"0.75rem"}}>{ATHLETE.weight}kg · <span style={{color:"#FF4F4D",fontWeight:600}}>RUNIA</span> · Corre con inteligencia.</span>
                   <FormBadge status={currentForm.formStatus||"optimal"}/>
                 </div>
               </div>
@@ -1375,35 +1377,31 @@
 
             const getNextWeekRec = () => {
               const recs = [];
-              // Use projected or average to recommend next week
               const refKm = isLateWeek ? wkKm : avgWeeklyKm > 0 ? avgWeeklyKm : projectedKm;
 
               if (isEarlyWeek) {
-                // Still this week to plan — focus on remaining days
-                recs.push(`Hoy es ${dayNameToday}. Quedan ${daysRemaining} días: planifica ${Math.min(daysRemaining, 3)} sesiones de running.`);
-                if (wkRuns.length === 0) recs.push("Prioridad: un run fácil de 6-8km hoy para activar la semana.");
-                else if (wkRuns.filter(a => a.p < 5.6 && a.p > 0).length > 0) recs.push("Ya hiciste intensidad. Los próximos runs deben ser fáciles en Z2.");
-                else recs.push("Buen momento para 1 sesión de tempo o fartlek de 20-25min a mitad de semana.");
-                if (wkGym.length === 0) recs.push("Mete 1-2 sesiones de fuerza antes del viernes.");
-                recs.push("Reserva el long run (12-16km) para el fin de semana.");
+                recs.push(`Es ${dayNameToday}. Quedan ${daysRemaining} días — planifica tus sesiones con el Método RUNIA: lunes subidas, miércoles calidad, sábado long run.`);
+                if (wkRuns.length === 0) recs.push("Arranca hoy con un rodaje fácil de 6-8km en Z2. El primer paso importa.");
+                else if (wkRuns.filter(a => a.p < 5.6 && a.p > 0).length > 0) recs.push("Ya acumulaste intensidad. Los próximos runs: Z2 puro. Tu cuerpo absorbe en el fácil.");
+                else recs.push("Buen momento para una sesión de calidad a mitad de semana — tempo o intervalos cortos.");
+                if (wkGym.length === 0) recs.push("No olvides 1-2 sesiones de fuerza — sentadillas, lunges y plancha son la base.");
+                recs.push("Reserva el long run para el sábado. Ese es tu trabajo más importante de la semana.");
               } else if (isMidWeek) {
-                // Rest of this week + preview next
-                if (daysRemaining > 0) recs.push(`Quedan ${daysRemaining} días: ${wkKm < avgWeeklyKm * 0.6 ? "un long run de 12-15km el sábado compensaría el volumen." : "cierra con 1-2 runs fáciles."}`);
-                const nextTarget = refKm > 45 ? `~${fmt(refKm * 0.85)}km (descarga)` : `${fmt(refKm * 1.05)}-${fmt(refKm * 1.1)}km (+5-10%)`;
+                if (daysRemaining > 0) recs.push(`Quedan ${daysRemaining} días: ${wkKm < avgWeeklyKm * 0.6 ? "el long run del sábado es clave — apunta a 12-16km en Z2." : "cierra con 1-2 rodajes fáciles y deja el cuerpo listo."}`);
+                const nextTarget = refKm > 45 ? `~${fmt(refKm * 0.85)}km (semana de descarga — necesaria)` : `${fmt(refKm * 1.05)}-${fmt(refKm * 1.1)}km (+5-10%)`;
                 recs.push(`Próxima semana objetivo: ${nextTarget}.`);
-                recs.push("Incluye variedad: 1 sesión de intervalos, 1 tempo, y el resto fácil.");
+                recs.push("Método RUNIA: lunes subidas o recuperación, miércoles intervalos/tempo, viernes easy 10km, sábado long run.");
               } else {
-                // Weekend: full next-week plan
                 const nextTarget = wkKm > 45 ? `~${fmt(wkKm * 0.85)}km (semana de descarga)` : `${fmt(Math.max(wkKm * 1.05, avgWeeklyKm))}–${fmt(Math.max(wkKm * 1.1, avgWeeklyKm * 1.05))}km`;
                 recs.push(`Objetivo próxima semana: ${nextTarget}.`);
                 if (wkKm > 45) {
-                  recs.push("Máximo 1 sesión de tempo suave. El resto fácil en Z2.");
+                  recs.push("Semana de descarga: 1 tempo suave máximo. El resto Z2. Tu cuerpo consolida aquí.");
                 } else {
-                  recs.push("Plan: 1 intervalos (6×800m), 1 tempo (25min), 1-2 fáciles, 1 long run 14-16km.");
+                  recs.push("Plan Método RUNIA: Lun subidas (12km) · Mié intervalos (6×800m o tempo) · Vie easy 10km · Sáb long run (14-18km Z2).");
                 }
-                if (wkGym.length < 2) recs.push("Agrega 2 sesiones de fuerza (30-45min cada una).");
+                if (wkGym.length < 2) recs.push("Agrega 2 sesiones de fuerza. Sentadillas + lunges + plancha = menos lesiones, más km.");
               }
-              recs.push("Asegura 7-8 horas de sueño y buena hidratación.");
+              recs.push("7-8h de sueño y buena hidratación. El descanso es parte del entrenamiento.");
               return recs;
             };
 
@@ -1657,7 +1655,7 @@
                   <div style={{width:36,height:36,borderRadius:10,background:"linear-gradient(135deg,#3b82f6,#06b6d4)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>🧠</div>
                   <div>
                     <h3 style={{fontSize:"1rem",fontWeight:900,color:"white"}}>Análisis Semanal del Coach</h3>
-                    <p style={{fontSize:"0.65rem",color:"#6b7280"}}>{dayNameToday} · Día {daysElapsed} de 7{daysRemaining > 0 ? ` · ${daysRemaining} días restantes` : " · Semana completa"}{avgWeeklyKm > 0 ? ` · Promedio: ${fmt(avgWeeklyKm)}km/sem` : ""}</p>
+                    <p style={{fontSize:"0.65rem",color:"#737380"}}>{dayNameToday} · Día {daysElapsed} de 7{daysRemaining > 0 ? ` · ${daysRemaining} días restantes` : " · Semana completa"}{avgWeeklyKm > 0 ? ` · Promedio: ${fmt(avgWeeklyKm)}km/sem` : ""} · <span style={{color:"#FF4F4D",fontWeight:600}}>RUNIA</span></p>
                   </div>
                 </div>
 
